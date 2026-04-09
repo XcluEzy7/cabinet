@@ -59,8 +59,27 @@ console.log("Initializing Cabinet database...");
 getDb();
 console.log("Database ready.");
 
+function getNvmNodeBin(): string | null {
+  const nvmDir = process.env.NVM_DIR || path.join(process.env.HOME || "", ".nvm");
+  try {
+    const defaultAlias = fs.readFileSync(path.join(nvmDir, "alias", "default"), "utf8").trim();
+    const versionDirs = fs.readdirSync(path.join(nvmDir, "versions", "node"));
+    const match = versionDirs.find((d: string) => d.startsWith(`v${defaultAlias}`) || d === defaultAlias);
+    if (match) return path.join(nvmDir, "versions", "node", match, "bin");
+  } catch {}
+  try {
+    const versionDirs = fs.readdirSync(path.join(nvmDir, "versions", "node")).sort().reverse();
+    if (versionDirs.length > 0) return path.join(nvmDir, "versions", "node", versionDirs[0], "bin");
+  } catch {}
+  return null;
+}
+
+const nvmBin = getNvmNodeBin();
 const enrichedPath = [
   `${process.env.HOME}/.local/bin`,
+  "/usr/local/bin",
+  "/opt/homebrew/bin",
+  ...(nvmBin ? [nvmBin] : []),
   process.env.PATH,
 ].join(":");
 
