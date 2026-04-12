@@ -309,7 +309,7 @@ export function TreeView() {
             {/* ── Agents (depth 1) ─────────────────────────── */}
             <div
               className="group flex items-center gap-1.5 px-3 pt-2 pb-1 w-full"
-              style={pad(1)}
+              style={pad(0)}
             >
               <button
                 onClick={() => {
@@ -530,7 +530,7 @@ export function TreeView() {
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground/80"
               )}
-              style={pad(1)}
+              style={pad(0)}
             >
               <SquareKanban className="h-3.5 w-3.5 shrink-0" />
               Tasks
@@ -552,7 +552,7 @@ export function TreeView() {
                     setSection({ type: "home" });
                   }}
                   className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-3 pt-2 pb-1 w-full text-left flex items-center gap-1.5 hover:text-foreground/80 transition-colors"
-                  style={pad(1)}
+                  style={pad(0)}
                 >
                   <BookOpen className="h-3.5 w-3.5 shrink-0" />
                   {kbSectionLabel}
