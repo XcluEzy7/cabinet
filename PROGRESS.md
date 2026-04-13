@@ -1,5 +1,7 @@
 # Progress
 
+[2026-04-13] Task board header cleanup: moved "Jobs & Heartbeats" schedule button to topmost right corner of the title row (flex justify-between), removed schedule toggle from filter row so it's back to original (agent filter + scope select + Refresh only). Fixed LayoutList not-defined runtime error by adding the import.
+
 [2026-04-13] Text Your Mom CEO heartbeat: executed marketing activation that was decided but not done earlier. Enabled all 6 marketing jobs across TikTok and Reddit cabinets (4 daily scans + 2 weekly digests). Updated team directory from 8/16 Active to 16/16 Active. Sent activation orders with specific deliverables to both marketing cabinet leads. Answered CFO's open data request on finance page (pricing $4.99/mo, burn ~$12K/mo, organic/paid split 60/40). Updated goals page with execution checkpoints for the week. Sent coordination messages to COO and CFO.
 
 [2026-04-13] Registry browser: full cabinet registry browsing experience as a new "registry" section. Home screen has "Browse all" link next to the carousel heading. The browser has a search bar + filterable list of all 8 registry templates, and clicking one opens a detail view with header, stats, cabinet structure tree, agent cards grid, job list, readme, and two "Import Cabinet" CTAs (top bar + inline banner). Detail data fetched live from GitHub via new GET /api/registry/[slug] endpoint that parses .cabinet manifests, agents, jobs, and child cabinets. Import flow uses the same fullscreen overlay + page reload pattern.

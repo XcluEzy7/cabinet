@@ -18,6 +18,7 @@ import {
   HeartPulse,
   Inbox,
   KanbanSquare,
+  LayoutList,
   Loader2,
   Maximize2,
   Minimize2,
@@ -827,6 +828,7 @@ export function TasksBoard({
   const [triggerFilter, setTriggerFilter] = useState<TriggerFilter>("all");
   const [busyConversationIds, setBusyConversationIds] = useState<Set<string>>(new Set());
   const [boardView, setBoardView] = useState<"board" | "schedule">("board");
+  const [scheduleView, setScheduleView] = useState<"calendar" | "list">("calendar");
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("week");
   const [calendarAnchor, setCalendarAnchor] = useState(() => new Date());
   const [calendarFullscreen, setCalendarFullscreen] = useState(false);
@@ -1337,9 +1339,9 @@ export function TasksBoard({
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
-              <Button variant="outline" size="sm" className="h-7" onClick={() => void refreshBoard()} disabled={refreshing}>
-                <RefreshCw data-icon="inline-start" className={cn(refreshing && "animate-spin")} />
-                Refresh
+              <Button variant="outline" size="sm" className="h-7" onClick={() => setBoardView("board")}>
+                <KanbanSquare data-icon="inline-start" className="h-3.5 w-3.5" />
+                Back to Board
               </Button>
             </div>
           </div>
@@ -1382,14 +1384,9 @@ export function TasksBoard({
               </>
             )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto h-7 gap-1.5 text-xs text-muted-foreground"
-              onClick={() => setBoardView("board")}
-            >
-              <KanbanSquare className="h-3.5 w-3.5" />
-              Back to Board
+            <Button variant="outline" size="sm" className="ml-auto h-7" onClick={() => void refreshBoard()} disabled={refreshing}>
+              <RefreshCw data-icon="inline-start" className={cn(refreshing && "animate-spin")} />
+              Refresh
             </Button>
           </div>
         </div>
@@ -1519,13 +1516,26 @@ export function TasksBoard({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="border-b border-border/70 bg-background/95 px-4 py-5 sm:px-6">
-        <div className="min-w-0">
-          <h1 className="font-body-serif text-[1.9rem] leading-none tracking-tight text-foreground sm:text-[2.2rem]">
-            {boardTitle}
-          </h1>
-          <p className="pt-2 text-sm leading-6 text-muted-foreground">
-            {boardDescription}
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="font-body-serif text-[1.9rem] leading-none tracking-tight text-foreground sm:text-[2.2rem]">
+              {boardTitle}
+            </h1>
+            <p className="pt-2 text-sm leading-6 text-muted-foreground">
+              {boardDescription}
+            </p>
+          </div>
+          <div className="shrink-0 pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              onClick={() => setBoardView("schedule")}
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              Jobs & Heartbeats
+            </Button>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
@@ -1609,16 +1619,6 @@ export function TasksBoard({
                 </SelectContent>
               </Select>
             ) : null}
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1.5"
-              onClick={() => setBoardView("schedule")}
-            >
-              <Calendar data-icon="inline-start" className="h-3.5 w-3.5" />
-              Schedule
-            </Button>
 
             <Button
               variant="outline"
