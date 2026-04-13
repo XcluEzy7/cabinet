@@ -89,66 +89,7 @@ export interface HeartbeatRecord {
   summary: string;
 }
 
-/**
- * Compute the next run time from a cron expression after a given date.
- * Simple approach: iterate minute-by-minute from `after` until we find a match.
- * Handles standard 5-field cron (minute, hour, dom, month, dow).
- */
-function computeNextCronRun(cronExpr: string, after: Date): Date | null {
-  const parts = cronExpr.trim().split(/\s+/);
-  if (parts.length < 5) return null;
-
-  const parseField = (field: string, max: number): number[] | null => {
-    if (field === "*") return null; // any
-    const values: number[] = [];
-    for (const part of field.split(",")) {
-      const stepMatch = part.match(/^(\*|\d+(?:-\d+)?)\/(\d+)$/);
-      if (stepMatch) {
-        const step = parseInt(stepMatch[2]);
-        const rangeMatch = stepMatch[1].match(/^(\d+)-(\d+)$/);
-        const start = stepMatch[1] === "*" ? 0 : rangeMatch ? parseInt(rangeMatch[1]) : parseInt(stepMatch[1]);
-        const end = rangeMatch ? parseInt(rangeMatch[2]) : max;
-        for (let i = start; i <= end; i += step) values.push(i);
-      } else {
-        const rangeMatch = part.match(/^(\d+)-(\d+)$/);
-        if (rangeMatch) {
-          for (let i = parseInt(rangeMatch[1]); i <= parseInt(rangeMatch[2]); i++) values.push(i);
-        } else {
-          values.push(parseInt(part));
-        }
-      }
-    }
-    return values;
-  };
-
-  const minutes = parseField(parts[0], 59);
-  const hours = parseField(parts[1], 23);
-  const doms = parseField(parts[2], 31);
-  const months = parseField(parts[3], 12);
-  const dows = parseField(parts[4], 6);
-
-  const matches = (d: Date) => {
-    if (minutes && !minutes.includes(d.getMinutes())) return false;
-    if (hours && !hours.includes(d.getHours())) return false;
-    if (doms && !doms.includes(d.getDate())) return false;
-    if (months && !months.includes(d.getMonth() + 1)) return false;
-    if (dows && !dows.includes(d.getDay())) return false;
-    return true;
-  };
-
-  // Start from next minute after `after`
-  const candidate = new Date(after);
-  candidate.setSeconds(0, 0);
-  candidate.setMinutes(candidate.getMinutes() + 1);
-
-  // Search up to 7 days ahead
-  const limit = after.getTime() + 7 * 24 * 60 * 60 * 1000;
-  while (candidate.getTime() < limit) {
-    if (matches(candidate)) return candidate;
-    candidate.setMinutes(candidate.getMinutes() + 1);
-  }
-  return null;
-}
+import { computeNextCronRun } from "./cron-compute";
 
 // Active cron jobs for agents
 const heartbeatJobs = new Map<string, ReturnType<typeof cron.schedule>>();

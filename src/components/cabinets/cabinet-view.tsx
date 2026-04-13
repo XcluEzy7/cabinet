@@ -1,93 +1,42 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  Bot,
-  CheckCircle2,
-  ChevronDown,
-  Clock3,
-  FolderOpen,
-  FolderTree,
-  HeartPulse,
-  Loader2,
-  MessageSquare,
-  Play,
-  RefreshCw,
-  Send,
-  Square,
-  Users,
-  XCircle,
-} from "lucide-react";
-import type { ConversationMeta } from "@/types/conversations";
+import { Calendar, ChevronLeft, ChevronRight, Clock3, FolderOpen, FolderTree, HeartPulse, LayoutList, Loader2, Save, Send, Users, Zap } from "lucide-react";
 import { KBEditor } from "@/components/editor/editor";
 import { HeaderActions } from "@/components/layout/header-actions";
 import { VersionHistory } from "@/components/editor/version-history";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { buildConversationInstanceKey } from "@/lib/agents/conversation-identity";
-import { cronToHuman, cronToShortLabel } from "@/lib/agents/cron-utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SchedulePicker } from "@/components/mission-control/schedule-picker";
+import { cronToShortLabel } from "@/lib/agents/cron-utils";
 import { CABINET_VISIBILITY_OPTIONS } from "@/lib/cabinets/visibility";
 import { useEditorStore } from "@/stores/editor-store";
 import { useTreeStore } from "@/stores/tree-store";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
+import { sortOrgAgents, startCase, rankAgentType } from "./cabinet-utils";
+import { CabinetTaskComposer } from "./cabinet-task-composer";
+import { CabinetSchedulerControls } from "./cabinet-scheduler-controls";
+import { InteractiveStatStrip } from "./interactive-stat-strip";
+import { ActivityFeed } from "./activity-feed";
+import { ScheduleCalendar, type CalendarMode } from "./schedule-calendar";
+import { ScheduleList } from "./schedule-list";
+import type { ScheduleEvent } from "@/lib/agents/cron-compute";
+import type { ConversationMeta } from "@/types/conversations";
 import type {
   CabinetAgentSummary,
   CabinetJobSummary,
   CabinetOverview,
 } from "@/types/cabinets";
 
-function startCase(value: string | undefined, fallback = "General"): string {
-  if (!value) return fallback;
-  const words = value.trim().split(/[\s_-]+/).filter(Boolean);
-  if (words.length === 0) return fallback;
-  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-}
+/* ─── Compact Org Chart (kept as-is — user loves it) ─── */
 
-function rankAgentType(type?: string): number {
-  if (type === "lead") return 0;
-  if (type === "specialist") return 1;
-  if (type === "support") return 2;
-  return 3;
-}
-
-function sortOrgAgents(a: CabinetAgentSummary, b: CabinetAgentSummary): number {
-  if (a.cabinetDepth !== b.cabinetDepth) return a.cabinetDepth - b.cabinetDepth;
-  const typeRank = rankAgentType(a.type) - rankAgentType(b.type);
-  if (typeRank !== 0) return typeRank;
-  if ((b.active ? 1 : 0) !== (a.active ? 1 : 0)) return (b.active ? 1 : 0) - (a.active ? 1 : 0);
-  return a.name.localeCompare(b.name);
-}
-
-/* ─── Inline Metric ─── */
-function StatPill({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
-  return (
-    <div className="min-w-[84px]">
-      <p
-        className={cn(
-          "font-body-serif text-[1.9rem] leading-none tracking-tight text-foreground",
-          highlight && "text-primary"
-        )}
-      >
-        {value}
-      </p>
-      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
-        {label}
-      </p>
-    </div>
-  );
-}
-
-/* ─── Agents List ─── */
 function CompactOrgChart({
   cabinetName,
   agents,
@@ -337,751 +286,6 @@ function CompactOrgChart({
   );
 }
 
-/* ─── Schedules Panel ─── */
-function SchedulesPanel({
-  agents,
-  jobs,
-}: {
-  agents: CabinetAgentSummary[];
-  jobs: CabinetJobSummary[];
-}) {
-  const agentNameBySlug = useMemo(
-    () => new Map(agents.map((a) => [a.scopedId, a.name])),
-    [agents]
-  );
-  const heartbeatAgents = agents
-    .filter((a) => a.heartbeat)
-    .sort((l, r) => l.name.localeCompare(r.name));
-  const jobsWithOwners = jobs.map((job) => ({
-    ...job,
-    ownerName: job.ownerScopedId
-      ? agentNameBySlug.get(job.ownerScopedId) || job.ownerAgent || null
-      : job.ownerAgent || null,
-  }));
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-[1.65rem] font-semibold tracking-tight text-foreground">
-          Jobs and heartbeats
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          {jobsWithOwners.length} scheduled jobs and {heartbeatAgents.length} active heartbeats in this scope.
-        </p>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-medium text-foreground">Scheduled jobs</h3>
-        <div className="mt-3 border-t border-border/70">
-          {jobsWithOwners.length > 0 ? (
-            jobsWithOwners.map((job) => (
-              <div key={job.scopedId} className="flex items-start gap-3 border-b border-border/60 py-3">
-                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/40">
-                  <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{job.name}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {job.ownerName ? `${job.ownerName} · ` : ""}
-                    {cronToHuman(job.schedule)}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "mt-0.5 shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
-                    job.enabled
-                      ? "bg-emerald-500/12 text-emerald-500"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {job.enabled ? "On" : "Off"}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="py-4 text-sm text-muted-foreground">No cabinet jobs configured yet.</p>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-medium text-foreground">Heartbeats</h3>
-        <div className="mt-3 border-t border-border/70">
-          {heartbeatAgents.length > 0 ? (
-            heartbeatAgents.map((agent) => (
-              <div key={agent.scopedId} className="flex items-center gap-3 border-b border-border/60 py-3">
-                <span className="text-lg leading-none shrink-0">{agent.emoji || "🤖"}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{agent.name}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {cronToHuman(agent.heartbeat || "")}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-primary/8 px-2.5 py-0.5 text-[10px] font-medium text-primary">
-                  {cronToShortLabel(agent.heartbeat || "")}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="py-4 text-sm text-muted-foreground">No heartbeats configured yet.</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Conversations helpers ─── */
-
-function formatRelative(iso: string): string {
-  const delta = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(delta / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
-const TRIGGER_STYLES: Record<ConversationMeta["trigger"], string> = {
-  manual: "bg-sky-500/12 text-sky-400 ring-1 ring-sky-500/20",
-  job: "bg-emerald-500/12 text-emerald-400 ring-1 ring-emerald-500/20",
-  heartbeat: "bg-pink-500/12 text-pink-400 ring-1 ring-pink-500/20",
-};
-
-const TRIGGER_LABELS: Record<ConversationMeta["trigger"], string> = {
-  manual: "Manual",
-  job: "Job",
-  heartbeat: "Heartbeat",
-};
-
-function TriggerIcon({ trigger }: { trigger: ConversationMeta["trigger"] }) {
-  if (trigger === "job") return <Clock3 className="h-2.5 w-2.5" />;
-  if (trigger === "heartbeat") return <HeartPulse className="h-2.5 w-2.5" />;
-  return <Bot className="h-2.5 w-2.5" />;
-}
-
-function StatusIcon({ status }: { status: ConversationMeta["status"] }) {
-  if (status === "running") return <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-500" />;
-  if (status === "completed") return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
-  if (status === "failed") return <XCircle className="h-3.5 w-3.5 text-destructive" />;
-  return <XCircle className="h-3.5 w-3.5 text-muted-foreground/40" />;
-}
-
-/* ─── Task Composer ─── */
-function CabinetTaskComposer({
-  cabinetPath,
-  agents,
-  displayName,
-  requestedAgent,
-  focusRequest,
-  onNavigate,
-}: {
-  cabinetPath: string;
-  agents: CabinetAgentSummary[];
-  displayName: string;
-  requestedAgent?: CabinetAgentSummary | null;
-  focusRequest?: number;
-  onNavigate: (agentSlug: string, agentCabinetPath: string, conversationId: string) => void;
-}) {
-  const [selectedAgent, setSelectedAgent] = useState<CabinetAgentSummary | null>(null);
-  const [prompt, setPrompt] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [agentQuery, setAgentQuery] = useState<string | null>(null);
-  const [agentIndex, setAgentIndex] = useState(0);
-  const [agentMentionStart, setAgentMentionStart] = useState(0);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Auto-select first active own-cabinet agent on load
-  useEffect(() => {
-    if (agents.length > 0 && !selectedAgent) {
-      const first =
-        agents.find((a) => a.cabinetDepth === 0 && a.active) ||
-        agents.find((a) => a.active) ||
-        agents[0];
-      setSelectedAgent(first);
-    }
-  }, [agents, selectedAgent]);
-
-  useEffect(() => {
-    if (!requestedAgent) return;
-    setSelectedAgent(requestedAgent);
-  }, [requestedAgent]);
-
-  useEffect(() => {
-    if (!focusRequest) return;
-    rootRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    window.setTimeout(() => {
-      textareaRef.current?.focus();
-    }, 120);
-  }, [focusRequest]);
-
-  // Auto-grow textarea
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.max(el.scrollHeight, 72)}px`;
-  }, [prompt]);
-
-  const greeting = getGreeting();
-  const activeAgents = agents.filter((a) => a.active);
-  const assignableAgents = activeAgents.length > 0 ? activeAgents : agents;
-  const filteredAgents =
-    agentQuery === null
-      ? []
-      : assignableAgents.filter((agent) => {
-          const query = agentQuery.toLowerCase();
-          return (
-            agent.name.toLowerCase().includes(query) ||
-            agent.slug.toLowerCase().includes(query) ||
-            agent.role.toLowerCase().includes(query)
-          );
-        });
-
-  function handlePromptChange(value: string, cursorPosition: number) {
-    setPrompt(value);
-    const textBefore = value.slice(0, cursorPosition);
-    const atIndex = textBefore.lastIndexOf("@");
-
-    if (atIndex === -1) {
-      setAgentQuery(null);
-      return;
-    }
-
-    const charBefore = atIndex > 0 ? textBefore[atIndex - 1] : " ";
-    if (charBefore !== " " && charBefore !== "\n" && atIndex !== 0) {
-      setAgentQuery(null);
-      return;
-    }
-
-    const query = textBefore.slice(atIndex + 1);
-    if (query.includes(" ") || query.includes("\n")) {
-      setAgentQuery(null);
-      return;
-    }
-
-    setAgentMentionStart(atIndex);
-    setAgentQuery(query);
-    setAgentIndex(0);
-  }
-
-  function assignAgent(agent: CabinetAgentSummary) {
-    setSelectedAgent(agent);
-    setAgentQuery(null);
-    setPrompt((current) => {
-      const before = current.slice(0, agentMentionStart);
-      const after = current.slice(agentMentionStart + (agentQuery?.length ?? 0) + 1);
-      return `${before}${after}`.replace(/\s{2,}/g, " ").trimStart();
-    });
-    window.setTimeout(() => textareaRef.current?.focus(), 0);
-  }
-
-  async function submit(text: string) {
-    if (!text.trim() || submitting || !selectedAgent) return;
-    setSubmitting(true);
-    try {
-      const agentCabinetPath = selectedAgent.cabinetPath || cabinetPath;
-      const res = await fetch("/api/agents/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agentSlug: selectedAgent.slug,
-          userMessage: text.trim(),
-          mentionedPaths: [],
-          cabinetPath: agentCabinetPath,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPrompt("");
-        onNavigate(selectedAgent.slug, agentCabinetPath, data.conversation?.id);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  const placeholder = selectedAgent
-    ? `What should ${selectedAgent.name} work on?`
-    : "Choose an agent and describe the next task.";
-
-  return (
-    <div ref={rootRef} className="space-y-5">
-      <div className="space-y-3">
-        <h1 className="font-body-serif text-[1.45rem] leading-tight tracking-tight text-foreground sm:text-[1.85rem]">
-          {greeting}, {displayName}. What are we working on today?
-        </h1>
-      </div>
-
-      <div className="space-y-3">
-        <div className="relative w-full">
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) =>
-              handlePromptChange(e.target.value, e.target.selectionStart || e.target.value.length)
-            }
-            onKeyDown={(e) => {
-              if (agentQuery !== null && filteredAgents.length > 0) {
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setAgentIndex((current) => (current + 1) % filteredAgents.length);
-                  return;
-                }
-                if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setAgentIndex((current) =>
-                    current === 0 ? filteredAgents.length - 1 : current - 1
-                  );
-                  return;
-                }
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  const agent = filteredAgents[agentIndex];
-                  if (agent) assignAgent(agent);
-                  return;
-                }
-                if (e.key === "Escape") {
-                  setAgentQuery(null);
-                  return;
-                }
-              }
-
-              if (e.key === "Enter" && e.shiftKey) {
-                return; // default: insert newline
-              }
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void submit(prompt);
-              }
-            }}
-            placeholder={placeholder}
-            disabled={submitting || !selectedAgent}
-            rows={1}
-            className={cn(
-              "min-h-[72px] w-full rounded-xl border border-border bg-card px-4 py-4 pr-16",
-              "text-sm text-foreground placeholder:text-muted-foreground",
-              "focus:outline-none focus:ring-2 focus:ring-ring",
-              "shadow-sm resize-none",
-              (!selectedAgent || submitting) && "opacity-60"
-            )}
-          />
-
-          {agentQuery !== null ? (
-            <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-20 rounded-2xl border border-border bg-popover shadow-lg">
-              {filteredAgents.length > 0 ? (
-                <div className="py-1.5">
-                  {filteredAgents.slice(0, 6).map((agent, index) => (
-                    <button
-                      key={agent.scopedId}
-                      type="button"
-                      onClick={() => assignAgent(agent)}
-                      className={cn(
-                        "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
-                        index === agentIndex ? "bg-muted/70" : "hover:bg-muted/40"
-                      )}
-                    >
-                      <span className="text-base leading-none">{agent.emoji || "🤖"}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">{agent.name}</p>
-                        <p className="truncate text-[11px] text-muted-foreground">
-                          {agent.role}
-                          {agent.inherited ? ` · ${agent.cabinetName}` : ""}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="px-3 py-2 text-xs text-muted-foreground">
-                  No visible agents match that name yet.
-                </p>
-              )}
-            </div>
-          ) : null}
-
-          <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center">
-            <button
-              type="button"
-              onClick={() => void submit(prompt)}
-              disabled={!prompt.trim() || submitting || !selectedAgent}
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-                prompt.trim() && !submitting
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-muted text-muted-foreground"
-              )}
-              aria-label="Start conversation"
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-          <span className="text-[11px] text-muted-foreground/50">
-            use <kbd className="rounded border border-border/50 bg-muted/50 px-1 py-0.5 font-mono text-[10px]">@</kbd> to mention
-          </span>
-          <div className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground/50">
-            <kbd className="rounded border border-border/50 bg-muted/50 px-1 py-0.5 font-mono text-[10px]">Shift</kbd>
-            <span>+</span>
-            <kbd className="rounded border border-border/50 bg-muted/50 px-1 py-0.5 font-mono text-[10px]">↵</kbd>
-            <span className="ml-0.5">new line</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <Select
-            items={assignableAgents.map((agent) => ({
-              label: agent.name,
-              value: agent.scopedId,
-            }))}
-            value={selectedAgent?.scopedId || null}
-            onValueChange={(value) => {
-              const agent = assignableAgents.find((entry) => entry.scopedId === value) || null;
-              setSelectedAgent(agent);
-            }}
-            disabled={assignableAgents.length === 0}
-          >
-            <SelectTrigger className="min-w-[220px] rounded-full bg-background px-3">
-              <SelectValue placeholder="No visible agents" />
-            </SelectTrigger>
-            <SelectContent align="start">
-              <SelectGroup>
-                {assignableAgents.map((agent) => (
-                  <SelectItem key={agent.scopedId} value={agent.scopedId}>
-                    <span className="text-sm leading-none">{agent.emoji || "🤖"}</span>
-                    <span className="truncate">
-                      {agent.name}
-                      {agent.inherited ? ` · ${agent.cabinetName}` : ""}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Recent Conversations ─── */
-function RecentConversations({
-  cabinetPath,
-  visibilityMode,
-  agents,
-  onOpen,
-  onOpenWorkspace,
-}: {
-  cabinetPath: string;
-  visibilityMode: string;
-  agents: { slug: string; emoji: string; name: string; cabinetPath?: string }[];
-  onOpen: (conv: ConversationMeta) => void;
-  onOpenWorkspace: () => void;
-}) {
-  const [conversations, setConversations] = useState<ConversationMeta[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const agentBySlug = useMemo(() => {
-    const map = new Map<string, { emoji: string; name: string }>();
-    for (const a of agents) map.set(a.slug, { emoji: a.emoji, name: a.name });
-    return map;
-  }, [agents]);
-
-  const refresh = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({ cabinetPath, limit: "20" });
-      if (visibilityMode !== "own") params.set("visibilityMode", visibilityMode);
-      const res = await fetch(`/api/agents/conversations?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setConversations((data.conversations || []) as ConversationMeta[]);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, [cabinetPath, visibilityMode]);
-
-  useEffect(() => {
-    void refresh();
-    const iv = setInterval(() => void refresh(), 6000);
-    return () => clearInterval(iv);
-  }, [refresh]);
-
-  const hasRunning = conversations.some((c) => c.status === "running");
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <h2 className="text-[1.65rem] font-semibold tracking-tight text-foreground">
-                Last conversations
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {loading ? "Loading…" : `${conversations.length} conversations`}
-                {hasRunning ? (
-                  <span className="ml-2 inline-flex items-center gap-1 text-emerald-600">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {conversations.filter((c) => c.status === "running").length} running
-                  </span>
-                ) : null}
-              </p>
-            </div>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-2 text-xs"
-          onClick={onOpenWorkspace}
-        >
-          <Users className="h-3.5 w-3.5" />
-          Open conversations
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center gap-2 border-t border-border/70 py-4 text-sm text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading conversations…
-        </div>
-      ) : conversations.length === 0 ? (
-        <p className="border-t border-border/70 py-4 text-sm text-muted-foreground">
-          No conversations yet. Run a heartbeat or send a task to an agent.
-        </p>
-      ) : (
-        <div className="border-t border-border/70">
-          {conversations.map((conv) => {
-            const agent = agentBySlug.get(conv.agentSlug);
-            return (
-              <button
-                key={buildConversationInstanceKey(conv)}
-                onClick={() => onOpen(conv)}
-                className="flex w-full items-center gap-3 border-b border-border/60 py-3 text-left transition-colors hover:bg-muted/20"
-              >
-                <StatusIcon status={conv.status} />
-                <span className="shrink-0 text-base leading-none" title={agent?.name || conv.agentSlug}>
-                  {agent?.emoji || "🤖"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium leading-snug">{conv.title}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {agent?.name || conv.agentSlug}
-                    {conv.summary ? ` · ${conv.summary}` : ""}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                    TRIGGER_STYLES[conv.trigger]
-                  )}
-                  title={TRIGGER_LABELS[conv.trigger]}
-                >
-                  <TriggerIcon trigger={conv.trigger} />
-                  {TRIGGER_LABELS[conv.trigger]}
-                </span>
-                <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
-                  {formatRelative(conv.startedAt)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Cabinet Scheduler Controls ─── */
-function CabinetSchedulerControls({
-  cabinetPath,
-  ownAgents,
-  onRefresh,
-}: {
-  cabinetPath: string;
-  ownAgents: CabinetAgentSummary[];
-  onRefresh: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const activeOwn = ownAgents.filter((a) => a.active);
-  const anyActive = activeOwn.length > 0;
-  const allActive = activeOwn.length === ownAgents.length && ownAgents.length > 0;
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const close = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [menuOpen]);
-
-  async function schedulerAction(action: "start-all" | "stop-all") {
-    setBusy(true);
-    try {
-      await fetch("/api/agents/scheduler", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, cabinetPath }),
-      });
-      onRefresh();
-    } catch {
-      // ignore
-    } finally {
-      setBusy(false);
-      setMenuOpen(false);
-    }
-  }
-
-  async function restart() {
-    setBusy(true);
-    try {
-      await fetch("/api/agents/scheduler", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "stop-all", cabinetPath }),
-      });
-      await fetch("/api/agents/scheduler", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start-all", cabinetPath }),
-      });
-      onRefresh();
-    } catch {
-      // ignore
-    } finally {
-      setBusy(false);
-      setMenuOpen(false);
-    }
-  }
-
-  if (ownAgents.length === 0) return null;
-
-  return (
-    <div className="relative flex items-center" ref={menuRef}>
-      {/* Main toggle button */}
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void schedulerAction(anyActive ? "stop-all" : "start-all")}
-        title={
-          anyActive
-            ? `Stop all ${activeOwn.length} active agent(s) — pauses their heartbeats and cron jobs. Only this cabinet, not sub-cabinets.`
-            : `Activate all ${ownAgents.length} agent(s) — starts their heartbeats and cron jobs on schedule. Only this cabinet, not sub-cabinets.`
-        }
-        className={cn(
-          "inline-flex items-center gap-2 rounded-l-lg border px-4 py-2 text-sm font-semibold transition-colors",
-          busy && "opacity-60",
-          anyActive
-            ? "border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20"
-            : "border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-        )}
-      >
-        {busy ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : anyActive ? (
-          <Square className="h-4 w-4" />
-        ) : (
-          <Play className="h-4 w-4" />
-        )}
-        {anyActive ? "Stop All" : "Start All"}
-      </button>
-
-      {/* Dropdown toggle */}
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => setMenuOpen((o) => !o)}
-        className={cn(
-          "inline-flex items-center rounded-r-lg border border-l-0 px-2 py-2 transition-colors",
-          anyActive
-            ? "border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20"
-            : "border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-        )}
-      >
-        <ChevronDown className="h-3.5 w-3.5" />
-      </button>
-
-      {/* Dropdown menu */}
-      {menuOpen ? (
-        <div className="absolute right-0 top-[calc(100%+4px)] z-30 w-64 rounded-xl border border-border bg-popover shadow-lg">
-          <div className="py-1.5">
-            {!allActive ? (
-              <button
-                type="button"
-                onClick={() => void schedulerAction("start-all")}
-                disabled={busy}
-                className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/40"
-              >
-                <Play className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Start all agents</p>
-                  <p className="text-[11px] text-muted-foreground">Activate heartbeats and cron jobs</p>
-                </div>
-              </button>
-            ) : null}
-            {anyActive ? (
-              <button
-                type="button"
-                onClick={() => void schedulerAction("stop-all")}
-                disabled={busy}
-                className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/40"
-              >
-                <Square className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Stop all agents</p>
-                  <p className="text-[11px] text-muted-foreground">Pause heartbeats and cron jobs</p>
-                </div>
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void restart()}
-              disabled={busy}
-              className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/40"
-            >
-              <RefreshCw className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Restart all agents</p>
-                <p className="text-[11px] text-muted-foreground">Stop then re-activate all schedules</p>
-              </div>
-            </button>
-          </div>
-          <div className="border-t border-border/60 px-3 py-2.5">
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              {activeOwn.length}/{ownAgents.length} own agents active.
-              Only this cabinet — sub-cabinet agents are not affected.
-            </p>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 /* ─── Main View ─── */
 export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
   const [overview, setOverview] = useState<CabinetOverview | null>(null);
@@ -1090,7 +294,24 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
   const [displayName, setDisplayName] = useState("");
   const [requestedAgent, setRequestedAgent] = useState<CabinetAgentSummary | null>(null);
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
-  const [showCompactTitle, setShowCompactTitle] = useState(false);
+  const [jobDialog, setJobDialog] = useState<{
+    agentSlug: string;
+    agentName: string;
+    cabinetPath: string;
+    draft: { id: string; name: string; schedule: string; prompt: string; enabled: boolean };
+  } | null>(null);
+  const [heartbeatDialog, setHeartbeatDialog] = useState<{
+    agentSlug: string;
+    agentName: string;
+    cabinetPath: string;
+    heartbeat: string;
+    active: boolean;
+  } | null>(null);
+  const [dialogRunning, setDialogRunning] = useState(false);
+  const [dialogSaving, setDialogSaving] = useState(false);
+  const [scheduleView, setScheduleView] = useState<"calendar" | "list">("calendar");
+  const [calendarMode, setCalendarMode] = useState<CalendarMode>("week");
+  const [calendarAnchor, setCalendarAnchor] = useState(() => new Date());
   const scrollAreaHostRef = useRef<HTMLDivElement>(null);
   const titleSectionRef = useRef<HTMLDivElement>(null);
   const selectPage = useTreeStore((state) => state.selectPage);
@@ -1209,91 +430,186 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
   const cabinetDescription =
     overview?.cabinet.description ||
     "Portable software layer for agents, jobs, and knowledge.";
-  const visibleAgentCount = overview?.agents.length ?? 0;
-  const activeAgents = overview?.agents.filter((a) => a.active).length ?? 0;
-  const totalTaskCount = overview?.agents.reduce((sum, agent) => sum + agent.taskCount, 0) ?? 0;
-  const totalJobCount = overview?.jobs.length ?? 0;
-  const heartbeatCount = overview?.agents.filter((a) => Boolean(a.heartbeat)).length ?? 0;
-  const childCabinetCount = overview?.children.length ?? 0;
-  const visibleCabinetCount = overview?.visibleCabinets.length ?? 0;
   const ownAgents = useMemo(
     () => (overview?.agents || []).filter((a) => a.cabinetDepth === 0),
     [overview?.agents]
   );
-  const cabinetPathLabel = cabinetPath === "." ? "/" : `/${cabinetPath}`;
   const boardName = displayName || "there";
-  const scopeLabel =
-    CABINET_VISIBILITY_OPTIONS.find((option) => option.value === cabinetVisibilityMode)?.label ||
-    "Own agents only";
+
+  async function runDialogJob() {
+    if (!jobDialog) return;
+    setDialogRunning(true);
+    try {
+      const res = await fetch(`/api/agents/${jobDialog.agentSlug}/jobs/${jobDialog.draft.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "run", cabinetPath: jobDialog.cabinetPath }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setJobDialog(null);
+        if (data.run?.id) {
+          setSection({
+            type: "agent",
+            mode: "cabinet",
+            slug: jobDialog.agentSlug,
+            cabinetPath: jobDialog.cabinetPath,
+            agentScopedId: `${jobDialog.cabinetPath}::agent::${jobDialog.agentSlug}`,
+            conversationId: data.run.id,
+          });
+        }
+      }
+    } finally {
+      setDialogRunning(false);
+    }
+  }
+
+  async function saveDialogJob() {
+    if (!jobDialog) return;
+    setDialogSaving(true);
+    try {
+      const query = `?cabinetPath=${encodeURIComponent(jobDialog.cabinetPath)}`;
+      await fetch(`/api/agents/${jobDialog.agentSlug}/jobs/${jobDialog.draft.id}${query}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jobDialog.draft),
+      });
+      setJobDialog(null);
+      void loadOverview();
+    } finally {
+      setDialogSaving(false);
+    }
+  }
+
+  async function runDialogHeartbeat() {
+    if (!heartbeatDialog) return;
+    setDialogRunning(true);
+    try {
+      const res = await fetch(`/api/agents/personas/${heartbeatDialog.agentSlug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "run", cabinetPath: heartbeatDialog.cabinetPath }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHeartbeatDialog(null);
+        if (data.sessionId) {
+          setSection({
+            type: "agent",
+            mode: "cabinet",
+            slug: heartbeatDialog.agentSlug,
+            cabinetPath: heartbeatDialog.cabinetPath,
+            agentScopedId: `${heartbeatDialog.cabinetPath}::agent::${heartbeatDialog.agentSlug}`,
+            conversationId: data.sessionId,
+          });
+        }
+      }
+    } finally {
+      setDialogRunning(false);
+    }
+  }
+
+  async function saveDialogHeartbeat() {
+    if (!heartbeatDialog) return;
+    setDialogSaving(true);
+    try {
+      await fetch(`/api/agents/personas/${heartbeatDialog.agentSlug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          heartbeat: heartbeatDialog.heartbeat,
+          active: heartbeatDialog.active,
+          cabinetPath: heartbeatDialog.cabinetPath,
+        }),
+      });
+      setHeartbeatDialog(null);
+      void loadOverview();
+    } finally {
+      setDialogSaving(false);
+    }
+  }
+
+  function handleScheduleEventClick(event: ScheduleEvent) {
+    if (event.sourceType === "job" && event.jobRef && event.agentRef) {
+      setJobDialog({
+        agentSlug: event.agentRef.slug,
+        agentName: event.agentRef.name,
+        cabinetPath: event.agentRef.cabinetPath || cabinetPath,
+        draft: {
+          id: event.jobRef.id,
+          name: event.jobRef.name,
+          schedule: event.jobRef.schedule,
+          prompt: event.jobRef.prompt || "",
+          enabled: event.jobRef.enabled,
+        },
+      });
+    } else if (event.sourceType === "heartbeat" && event.agentRef) {
+      setHeartbeatDialog({
+        agentSlug: event.agentRef.slug,
+        agentName: event.agentRef.name,
+        cabinetPath: event.agentRef.cabinetPath || cabinetPath,
+        heartbeat: event.agentRef.heartbeat || "0 9 * * 1-5",
+        active: event.agentRef.active,
+      });
+    }
+  }
+
+  function navigateCalendar(direction: -1 | 0 | 1) {
+    if (direction === 0) {
+      setCalendarAnchor(new Date());
+      return;
+    }
+    setCalendarAnchor((prev) => {
+      const next = new Date(prev);
+      if (calendarMode === "day") next.setDate(next.getDate() + direction);
+      else if (calendarMode === "week") next.setDate(next.getDate() + direction * 7);
+      else next.setMonth(next.getMonth() + direction);
+      return next;
+    });
+  }
+
+  const calendarLabel = useMemo(() => {
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    if (calendarMode === "day") {
+      return calendarAnchor.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+    }
+    if (calendarMode === "month") {
+      return `${months[calendarAnchor.getMonth()]} ${calendarAnchor.getFullYear()}`;
+    }
+    // week: show range
+    const start = new Date(calendarAnchor);
+    const dow = start.getDay();
+    start.setDate(start.getDate() - (dow === 0 ? 6 : dow - 1));
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    if (start.getMonth() === end.getMonth()) {
+      return `${months[start.getMonth()]} ${start.getDate()}–${end.getDate()}, ${start.getFullYear()}`;
+    }
+    return `${months[start.getMonth()]} ${start.getDate()} – ${months[end.getMonth()]} ${end.getDate()}`;
+  }, [calendarAnchor, calendarMode]);
+
   const sectionSurfaces = {
     overview: "color-mix(in oklch, var(--background) 95%, var(--muted) 5%)",
-    activity: "color-mix(in oklch, var(--background) 97%, var(--secondary) 3%)",
     graph: "color-mix(in oklch, var(--background) 96%, var(--muted) 4%)",
+    activity: "color-mix(in oklch, var(--background) 96%, var(--muted) 4%)",
     operations: "color-mix(in oklch, var(--background) 94%, var(--secondary) 6%)",
   } as const;
 
-  useEffect(() => {
-    const viewport = scrollAreaHostRef.current?.querySelector<HTMLElement>(
-      '[data-slot="scroll-area-viewport"]'
-    );
-    const titleEl = titleSectionRef.current;
-
-    if (!viewport || !titleEl) return;
-
-    const updateCompactTitle = () => {
-      const viewportRect = viewport.getBoundingClientRect();
-      const titleRect = titleEl.getBoundingClientRect();
-      const shouldShow = titleRect.bottom <= viewportRect.top + 24;
-      setShowCompactTitle((current) => (current === shouldShow ? current : shouldShow));
-    };
-
-    updateCompactTitle();
-    viewport.addEventListener("scroll", updateCompactTitle, { passive: true });
-    window.addEventListener("resize", updateCompactTitle);
-
-    return () => {
-      viewport.removeEventListener("scroll", updateCompactTitle);
-      window.removeEventListener("resize", updateCompactTitle);
-    };
-  }, [cabinetName, cabinetDescription]);
-
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="border-b border-border/70 bg-background/95 px-4 py-3 sm:px-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            {overview?.parent ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => openCabinet(overview.parent!.path)}
-                className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Back to {overview.parent.name}
-              </Button>
-            ) : null}
-            {showCompactTitle ? (
-              <>
-                <div
-                  className={cn(
-                    "hidden h-5 w-px bg-border/80 sm:block",
-                    !overview?.parent && "sm:hidden"
-                  )}
-                />
-                <div className="min-w-0">
-                  <p className="truncate font-body-serif text-[1.1rem] leading-none text-foreground">
-                    {cabinetName}
-                  </p>
-                  <p className="truncate pt-1 text-[11px] text-muted-foreground">
-                    {cabinetDescription}
-                  </p>
-                </div>
-              </>
-            ) : null}
+      {/* ─── Header bar ─── */}
+      <div className="border-b border-border/70 bg-background/95 px-4 py-5 sm:px-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0" ref={titleSectionRef}>
+            <h1 className="font-body-serif text-[1.9rem] leading-none tracking-tight text-foreground sm:text-[2.2rem]">
+              {cabinetName}
+            </h1>
+            <p className="pt-2 text-sm leading-6 text-muted-foreground">
+              {cabinetDescription}
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <CabinetSchedulerControls
               cabinetPath={cabinetPath}
               ownAgents={ownAgents}
@@ -1305,8 +621,37 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
             </div>
           </div>
         </div>
+
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <InteractiveStatStrip
+            agents={overview?.agents || []}
+            jobs={overview?.jobs || []}
+            onAgentClick={openCabinetAgent}
+          />
+
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/55">
+              Scope
+            </span>
+            {CABINET_VISIBILITY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setCabinetVisibilityMode(cabinetPath, option.value)}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  cabinetVisibilityMode === option.value
+                    ? "border-primary/60 bg-primary/10 text-primary"
+                    : "border-border/60 bg-transparent text-muted-foreground/70 hover:text-foreground"
+                )}
+              >
+                {option.shortLabel}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
+      {/* ─── Scrollable content ─── */}
       <div ref={scrollAreaHostRef} className="min-h-0 flex-1">
         <ScrollArea className="h-full">
           <div className="mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
@@ -1316,154 +661,389 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
               </div>
             ) : null}
 
+            {/* ── Section 1: Composer ── */}
             <section
-              className="-mx-4 border-b border-border/70 px-4 pb-10 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+              className="-mx-4 border-b border-border/70 px-4 pb-8 pt-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
               style={{ backgroundColor: sectionSurfaces.overview }}
             >
-              <div className="space-y-10">
-                <div className="space-y-8">
-                  <div ref={titleSectionRef}>
-                    <h2 className="font-body-serif text-[2.2rem] leading-none tracking-tight text-foreground">
-                      {cabinetName}
-                    </h2>
-                    <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-                      {cabinetDescription}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-x-8 gap-y-4">
-                    <StatPill value={visibleAgentCount} label="visible agents" />
-                    <StatPill value={activeAgents} label="active" highlight />
-                    <StatPill value={totalTaskCount} label="tasks" />
-                    <StatPill value={totalJobCount} label="jobs" />
-                    <StatPill value={heartbeatCount} label="heartbeats" />
-                    <StatPill value={visibleCabinetCount} label="cabinets in view" />
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
-                      Depth
-                    </span>
-                    {CABINET_VISIBILITY_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setCabinetVisibilityMode(cabinetPath, option.value)}
-                        className={cn(
-                          "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
-                          cabinetVisibilityMode === option.value
-                            ? "border-primary/60 bg-primary/10 text-primary"
-                            : "border-border/60 bg-transparent text-muted-foreground/70 hover:text-foreground"
-                        )}
-                      >
-                        {option.shortLabel}
-                      </button>
-                    ))}
-                    <span className="text-[11px] text-muted-foreground/50">
-                      {scopeLabel}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="h-px w-full bg-border/80" />
-
-                <div className="pt-1">
-                  <CabinetTaskComposer
-                    cabinetPath={cabinetPath}
-                    agents={overview?.agents || []}
-                    displayName={boardName}
-                    requestedAgent={requestedAgent}
-                    focusRequest={composerFocusRequest}
-                    onNavigate={(agentSlug, agentCabinetPath, conversationId) =>
-                      setSection({
-                        type: "agent",
-                        mode: "cabinet",
-                        slug: agentSlug,
-                        cabinetPath: agentCabinetPath,
-                        agentScopedId: `${agentCabinetPath}::agent::${agentSlug}`,
-                        conversationId,
-                      })
-                    }
-                  />
-                </div>
+              <div>
+                <CabinetTaskComposer
+                  cabinetPath={cabinetPath}
+                  agents={overview?.agents || []}
+                  displayName={boardName}
+                  requestedAgent={requestedAgent}
+                  focusRequest={composerFocusRequest}
+                  onNavigate={(agentSlug, agentCabinetPath, conversationId) =>
+                    setSection({
+                      type: "agent",
+                      mode: "cabinet",
+                      slug: agentSlug,
+                      cabinetPath: agentCabinetPath,
+                      agentScopedId: `${agentCabinetPath}::agent::${agentSlug}`,
+                      conversationId,
+                    })
+                  }
+                />
               </div>
             </section>
 
+            {/* ── Section 3: Org Chart ── */}
+            <section
+              className="-mx-4 border-b border-border/70 px-4 py-8 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+              style={{ backgroundColor: sectionSurfaces.graph }}
+            >
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <h2 className="text-[1.65rem] font-semibold tracking-tight text-foreground">
+                  Cabinet team
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-2 text-xs"
+                  onClick={openCabinetAgentsWorkspace}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Open agents workspace
+                </Button>
+              </div>
+
+              {loading && !overview ? (
+                <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading mission board...
+                </div>
+              ) : overview ? (
+                <CompactOrgChart
+                  cabinetName={cabinetName}
+                  agents={overview.agents}
+                  jobs={overview.jobs}
+                  children={overview.children}
+                  onAgentClick={openCabinetAgent}
+                  onAgentSend={primeTaskComposer}
+                  onChildCabinetClick={(child) => openCabinet(child.path)}
+                />
+              ) : null}
+            </section>
+
+            {/* ── Section 4: Activity Feed ── */}
             <section
               className="-mx-4 border-b border-border/70 px-4 py-8 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
               style={{ backgroundColor: sectionSurfaces.activity }}
             >
-            <RecentConversations
-              cabinetPath={cabinetPath}
-              visibilityMode={cabinetVisibilityMode}
-              agents={(overview?.agents || []).map((agent) => ({
-                slug: agent.slug,
-                emoji: agent.emoji,
-                name: agent.name,
-                cabinetPath: agent.cabinetPath,
-              }))}
-              onOpen={openConversation}
-              onOpenWorkspace={openCabinetAgentsWorkspace}
-            />
-            </section>
-
-            <section
-              className="-mx-4 border-b border-border/70 px-4 py-10 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
-              style={{ backgroundColor: sectionSurfaces.graph }}
-            >
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <h2 className="text-[1.8rem] font-semibold tracking-tight text-foreground">
-                  Cabinet team
-                </h2>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-2 text-xs"
-                onClick={openCabinetAgentsWorkspace}
-              >
-                <Users className="h-3.5 w-3.5" />
-                Open agents workspace
-              </Button>
-            </div>
-
-            {loading && !overview ? (
-              <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading mission board…
-              </div>
-            ) : overview ? (
-              <CompactOrgChart
-                cabinetName={cabinetName}
-                agents={overview.agents}
-                jobs={overview.jobs}
-                children={overview.children}
-                onAgentClick={openCabinetAgent}
-                onAgentSend={primeTaskComposer}
-                onChildCabinetClick={(child) => openCabinet(child.path)}
+              <ActivityFeed
+                cabinetPath={cabinetPath}
+                visibilityMode={cabinetVisibilityMode}
+                agents={(overview?.agents || []).map((agent) => ({
+                  slug: agent.slug,
+                  emoji: agent.emoji,
+                  name: agent.name,
+                  cabinetPath: agent.cabinetPath,
+                }))}
+                onOpen={openConversation}
+                onOpenWorkspace={openCabinetAgentsWorkspace}
               />
-            ) : null}
             </section>
 
+            {/* ── Section 5: Schedule Calendar / List ── */}
             <section
-              className="-mx-4 grid gap-10 px-4 py-10 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:grid-cols-[320px_minmax(0,1fr)]"
+              className="-mx-4 border-b border-border/70 px-4 py-8 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
               style={{ backgroundColor: sectionSurfaces.operations }}
             >
-            <SchedulesPanel
-              agents={overview?.agents || []}
-              jobs={overview?.jobs || []}
-            />
+              {/* Header */}
+              <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-[1.65rem] font-semibold tracking-tight text-foreground">
+                    Jobs & heartbeats
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {overview?.jobs.length ?? 0} jobs, {overview?.agents.filter((a) => a.heartbeat).length ?? 0} heartbeats
+                  </p>
+                </div>
 
-            <div className="min-w-0">
-              <div className="min-h-[680px]">
-                <KBEditor />
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Calendar / List toggle */}
+                  <div className="flex items-center rounded-lg border border-border/60 p-0.5">
+                    <button
+                      onClick={() => setScheduleView("calendar")}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
+                        scheduleView === "calendar"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      Calendar
+                    </button>
+                    <button
+                      onClick={() => setScheduleView("list")}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
+                        scheduleView === "list"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <LayoutList className="h-3.5 w-3.5" />
+                      List
+                    </button>
+                  </div>
+
+                  {/* Calendar sub-controls */}
+                  {scheduleView === "calendar" && (
+                    <>
+                      <div className="flex items-center rounded-lg border border-border/60 p-0.5">
+                        {(["day", "week", "month"] as CalendarMode[]).map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => setCalendarMode(m)}
+                            className={cn(
+                              "rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors",
+                              calendarMode === m
+                                ? "bg-foreground text-background"
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => navigateCalendar(-1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => navigateCalendar(0)}
+                          className="rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                        >
+                          Today
+                        </button>
+                        <button
+                          onClick={() => navigateCalendar(1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <span className="text-sm font-medium text-foreground">
+                        {calendarLabel}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+
+              {/* Content */}
+              {scheduleView === "calendar" ? (
+                <ScheduleCalendar
+                  mode={calendarMode}
+                  anchor={calendarAnchor}
+                  agents={overview?.agents || []}
+                  jobs={overview?.jobs || []}
+                  onEventClick={handleScheduleEventClick}
+                  onDayClick={(date) => {
+                    setCalendarMode("day");
+                    setCalendarAnchor(date);
+                  }}
+                />
+              ) : (
+                <ScheduleList
+                  agents={overview?.agents || []}
+                  jobs={overview?.jobs || []}
+                  onJobClick={(job, agent) => {
+                    setJobDialog({
+                      agentSlug: agent.slug,
+                      agentName: agent.name,
+                      cabinetPath: agent.cabinetPath || cabinetPath,
+                      draft: {
+                        id: job.id,
+                        name: job.name,
+                        schedule: job.schedule,
+                        prompt: job.prompt || "",
+                        enabled: job.enabled,
+                      },
+                    });
+                  }}
+                  onHeartbeatClick={(agent) => {
+                    setHeartbeatDialog({
+                      agentSlug: agent.slug,
+                      agentName: agent.name,
+                      cabinetPath: agent.cabinetPath || cabinetPath,
+                      heartbeat: agent.heartbeat || "0 9 * * 1-5",
+                      active: agent.active,
+                    });
+                  }}
+                />
+              )}
+            </section>
+
+            {/* ── Section 6: Editor ── */}
+            <section
+              className="-mx-4 px-4 py-10 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+              style={{ backgroundColor: sectionSurfaces.operations }}
+            >
+              <div className="min-w-0">
+                <div className="min-h-[680px]">
+                  <KBEditor />
+                </div>
+              </div>
             </section>
           </div>
         </ScrollArea>
       </div>
+
+      {/* ─── Job dialog ─── */}
+      {jobDialog ? (
+        <Dialog open onOpenChange={(open) => { if (!open) setJobDialog(null); }}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <div className="flex items-center justify-between gap-3 pr-10">
+                <DialogTitle className="flex items-center gap-2">
+                  <Clock3 className="h-4 w-4 text-emerald-400" />
+                  {jobDialog.draft.name || "Job"}
+                  <span className="text-[11px] font-normal text-muted-foreground">· {jobDialog.agentName}</span>
+                </DialogTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1 text-xs"
+                  onClick={() => void runDialogJob()}
+                  disabled={dialogRunning}
+                >
+                  {dialogRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                  Run now
+                </Button>
+              </div>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Schedule</span>
+                <SchedulePicker
+                  value={jobDialog.draft.schedule || "0 9 * * 1-5"}
+                  onChange={(cron) =>
+                    setJobDialog((prev) =>
+                      prev ? { ...prev, draft: { ...prev.draft, schedule: cron } } : prev
+                    )
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Prompt</span>
+                <textarea
+                  value={jobDialog.draft.prompt}
+                  onChange={(e) =>
+                    setJobDialog((prev) =>
+                      prev ? { ...prev, draft: { ...prev.draft, prompt: e.target.value } } : prev
+                    )
+                  }
+                  className="h-48 w-full resize-none rounded-lg bg-muted/60 px-3 py-2 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:bg-muted"
+                  placeholder="What should this job do?"
+                />
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <label className="flex cursor-pointer items-center gap-2 text-[12px] text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={jobDialog.draft.enabled}
+                    onChange={(e) =>
+                      setJobDialog((prev) =>
+                        prev ? { ...prev, draft: { ...prev.draft, enabled: e.target.checked } } : prev
+                      )
+                    }
+                  />
+                  Enabled
+                </label>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setJobDialog(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1 text-xs"
+                    onClick={() => void saveDialogJob()}
+                    disabled={dialogSaving}
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {dialogSaving ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
+      {/* ─── Heartbeat dialog ─── */}
+      {heartbeatDialog ? (
+        <Dialog open onOpenChange={(open) => { if (!open) setHeartbeatDialog(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center justify-between gap-3 pr-10">
+                <DialogTitle className="flex items-center gap-2">
+                  <HeartPulse className="h-4 w-4 text-pink-400" />
+                  Heartbeat
+                  <span className="text-[11px] font-normal text-muted-foreground">· {heartbeatDialog.agentName}</span>
+                </DialogTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1 text-xs"
+                  onClick={() => void runDialogHeartbeat()}
+                  disabled={dialogRunning}
+                >
+                  {dialogRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                  Run now
+                </Button>
+              </div>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Schedule</span>
+                <SchedulePicker
+                  value={heartbeatDialog.heartbeat}
+                  onChange={(cron) =>
+                    setHeartbeatDialog((prev) => (prev ? { ...prev, heartbeat: cron } : prev))
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <label className="flex cursor-pointer items-center gap-2 text-[12px] text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={heartbeatDialog.active}
+                    onChange={(e) =>
+                      setHeartbeatDialog((prev) =>
+                        prev ? { ...prev, active: e.target.checked } : prev
+                      )
+                    }
+                    className="h-3.5 w-3.5 cursor-pointer appearance-none rounded-sm border border-border bg-background transition-colors checked:border-primary checked:bg-primary focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-1"
+                  />
+                  Active
+                </label>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setHeartbeatDialog(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1 text-xs"
+                    onClick={() => void saveDialogHeartbeat()}
+                    disabled={dialogSaving}
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {dialogSaving ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </div>
   );
 }

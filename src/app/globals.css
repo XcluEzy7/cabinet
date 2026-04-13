@@ -190,6 +190,15 @@ html[data-custom-theme] .tiptap h4 {
   }
 }
 
+/* Agent card glow for running status */
+@keyframes cabinet-card-glow {
+  0%, 100% { box-shadow: 0 0 8px -2px rgba(16,185,129,0.15); }
+  50% { box-shadow: 0 0 16px -2px rgba(16,185,129,0.3); }
+}
+.animate-cabinet-card-glow {
+  animation: cabinet-card-glow 2s ease-in-out infinite;
+}
+
 /* Body serif — Source Serif 4, beats theme overrides */
 html[data-custom-theme] .font-body-serif,
 .font-body-serif {
