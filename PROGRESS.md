@@ -1,6 +1,6 @@
 # Progress
 
-[2026-04-13] Added depth dropdown to the sidebar header next to the "CABINET" label. The compact Select shows Own/+1/+2/All options controlling which agents from child cabinets are visible in the sidebar. Reuses existing visibility infrastructure from app-store and works at both root and sub-cabinet levels, syncing with the cabinet page depth pills.
+[2026-04-13] Added depth dropdown to the sidebar header next to the "CABINET" label and to the agents workspace org chart navbar. Both compact Select dropdowns show Own/+1/+2/All options controlling which agents from child cabinets are visible. Reuses existing visibility infrastructure from app-store, works at both root and sub-cabinet levels, and syncs with the cabinet page depth pills.
 
 [2026-04-13] Added right-click context menu to the Cabinet header in the sidebar. Shows: Rename (disabled with "coming soon" tooltip), Copy Relative Path (nested cabinets only), Copy Full Path, Open in Finder, and Delete (nested cabinets only, with confirmation). Root cabinet hides Rename-breaking and destructive options.
 
