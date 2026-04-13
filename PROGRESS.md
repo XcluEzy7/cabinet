@@ -210,3 +210,5 @@
 [2026-04-13] Separated chevron toggle from page navigation in sidebar tree nodes — clicking the chevron now only expands/collapses, clicking the label navigates.
 
 [2026-04-13] Agents page: moved conversations panel to the right side; added heartbeat schedule and job pills to each agent card in the org chart.
+
+[2026-04-13] Registry detail About section now renders markdown via dangerouslySetInnerHTML using server-side unified/remark HTML conversion. Added .registry-prose CSS class with parchment-palette styles (headings, lists, code blocks, blockquotes) to globals.css.

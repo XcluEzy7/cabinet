@@ -74,6 +74,7 @@ interface RegistryDetail {
   jobs: JobInfo[];
   children: ChildInfo[];
   readme: string;
+  readmeHtml: string;
   tags: string[];
   domain: string;
   stats: { totalAgents: number; totalJobs: number; totalCabinets: number };
@@ -721,19 +722,26 @@ function DetailView({ slug, onBack }: { slug: string; onBack: () => void }) {
                 )}
 
                 {/* Readme */}
-                {detail.readme && (
+                {detail.readmeHtml && (
                   <section>
                     <SectionLabel>About</SectionLabel>
                     <div
                       className="rounded-xl border p-6"
                       style={{ borderColor: P.border, backgroundColor: P.bgCard }}
                     >
-                      <pre
-                        className="whitespace-pre-wrap text-sm leading-relaxed font-sans"
-                        style={{ color: P.textSecondary }}
-                      >
-                        {detail.readme}
-                      </pre>
+                      <div
+                        className="registry-prose"
+                        style={
+                          {
+                            "--prose-body": P.textSecondary,
+                            "--prose-heading": P.textPrimary,
+                            "--prose-code-bg": P.bgWarm,
+                            "--prose-border": P.border,
+                            "--prose-link": P.accent,
+                          } as React.CSSProperties
+                        }
+                        dangerouslySetInnerHTML={{ __html: detail.readmeHtml }}
+                      />
                     </div>
                   </section>
                 )}

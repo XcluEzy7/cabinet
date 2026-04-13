@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import yaml from "js-yaml";
 import matter from "gray-matter";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
 import { REGISTRY_TEMPLATES } from "@/lib/registry/registry-manifest";
+
+async function markdownToHtml(markdown: string): Promise<string> {
+  const result = await unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype)
+    .use(rehypeStringify)
+    .process(markdown);
+  return String(result);
+}
 
 const REPO_OWNER = "hilash";
 const REPO_NAME = "cabinets";
@@ -190,12 +205,14 @@ export async function GET(
     // Fetch readme
     const indexFile = cabinetEntries.find((f) => f.name === "index.md");
     let readme = "";
+    let readmeHtml = "";
     let tags: string[] = [];
     if (indexFile?.download_url) {
       const raw = await fetchFile(indexFile.download_url);
       const { data, content } = matter(raw);
       readme = content.trim();
       tags = (data.tags as string[]) || [];
+      if (readme) readmeHtml = await markdownToHtml(readme);
     }
 
     // Fetch agents, jobs, children
@@ -215,6 +232,7 @@ export async function GET(
       jobs,
       children,
       readme,
+      readmeHtml,
       tags,
       domain: template.domain,
       stats: {
