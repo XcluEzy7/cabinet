@@ -1,5 +1,9 @@
 # Progress
 
+[2026-04-14] Unified `cabinetai-plan.md` and `CABINETAI_DEPLOYMENT.md` into single `CABINETAI.md`. Synced all three package versions to 0.3.1 (app, create-cabinet, cabinetai). Published both npm packages with READMEs.
+
+[2026-04-14] CLI: added `cabinetai uninstall` command. Default removes cached app versions from `~/.cabinet/app/`; `--all` removes the entire `~/.cabinet` directory. Cabinet data directories are never touched.
+
 [2026-04-14] Registry API: added `?limit=N` query param (defaults to 10) so the onboarding carousel caps at 10 templates. The full registry browser passes `limit=100` to show all.
 
 [2026-04-14] Fix sidebar labels: cabinet name in header, "Data" for content section. The top header now always prefers the .cabinet manifest name (e.g. "APPLE") over the index.md frontmatter title ("Knowledge Base"). Previously, clicking the cabinet overview caused activeCabinet to resolve to the root tree node whose frontmatter title was "Knowledge Base".

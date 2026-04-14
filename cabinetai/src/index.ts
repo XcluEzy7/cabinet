@@ -5,6 +5,7 @@ import { registerDoctor } from "./commands/doctor.js";
 import { registerUpdate } from "./commands/update.js";
 import { registerImport } from "./commands/import.js";
 import { registerList } from "./commands/list.js";
+import { registerUninstall } from "./commands/uninstall.js";
 
 import { VERSION } from "./version.js";
 
@@ -21,5 +22,6 @@ registerDoctor(program);
 registerUpdate(program);
 registerImport(program);
 registerList(program);
+registerUninstall(program);
 
 program.parse();
