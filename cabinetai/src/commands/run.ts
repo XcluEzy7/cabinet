@@ -2,9 +2,9 @@ import type { Command } from "commander";
 import path from "path";
 import fs from "fs";
 import { log, success, error, warning } from "../lib/log.js";
-import { findCabinetRoot } from "../lib/paths.js";
 import { ensureApp } from "../lib/app-manager.js";
 import { openBrowser, npmCommand, spawnChild } from "../lib/process.js";
+import { resolveOrBootstrapCabinetRoot } from "../lib/scaffold.js";
 import {
   parsePort,
   findAvailablePort,
@@ -32,11 +32,10 @@ export function registerRun(program: Command): void {
 }
 
 async function runCabinet(opts: { appVersion?: string; open?: boolean }): Promise<void> {
-  // 1. Find cabinet root
-  const cabinetDir = findCabinetRoot();
-  if (!cabinetDir) {
-    error('No cabinet found. Run "cabinetai create <name>" first, then cd into it.');
-    return;
+  // 1. Find or bootstrap the current directory as a cabinet
+  const { cabinetDir, name, bootstrapped } = resolveOrBootstrapCabinetRoot();
+  if (bootstrapped) {
+    success(`Bootstrapped "${name}" in the current directory.`);
   }
 
   const version = opts.appVersion || VERSION;

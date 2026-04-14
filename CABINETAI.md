@@ -9,10 +9,11 @@
 ## Quick Start
 
 ```bash
-npx create-cabinet my-startup
+mkdir my-startup && cd my-startup
+npx cabinetai run
 ```
 
-Or step by step:
+Or with explicit create:
 
 ```bash
 npx cabinetai create my-startup
@@ -63,7 +64,7 @@ cabinetai run --no-open              # don't open browser
 cabinetai run --app-version 0.3.1    # use a specific app version
 ```
 
-On first run, downloads the app to `~/.cabinet/app/` and installs dependencies. Subsequent runs start instantly.
+On first run, downloads the app to `~/.cabinet/app/` and installs dependencies. If the current directory is not already a cabinet, `run` bootstraps it in place by creating the `.cabinet`, `.agents/`, `.jobs/`, and `.cabinet-state/` structure before starting the server.
 
 | Env Variable | Default | Description |
 |---|---|---|

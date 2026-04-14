@@ -2,8 +2,8 @@ import type { Command } from "commander";
 import fs from "fs";
 import path from "path";
 import { log, success, error } from "../lib/log.js";
-import { slugify, findCabinetRoot, ensureDir, CABINET_MANIFEST } from "../lib/paths.js";
-import { writeCabinetManifest, type CabinetManifest } from "../lib/cabinet-manifest.js";
+import { slugify, findCabinetRoot } from "../lib/paths.js";
+import { scaffoldCabinetDir } from "../lib/scaffold.js";
 
 export function registerCreate(program: Command): void {
   program
@@ -38,50 +38,11 @@ function createCabinet(name: string): void {
 
   log(`Creating ${kind} cabinet "${name}" in ./${slug}/...`);
 
-  // Create directory structure
-  ensureDir(targetDir);
-  ensureDir(path.join(targetDir, ".agents"));
-  ensureDir(path.join(targetDir, ".jobs"));
-  ensureDir(path.join(targetDir, ".cabinet-state"));
-
-  // Write .cabinet manifest
-  const manifest: CabinetManifest = {
-    schemaVersion: 1,
-    id: slug,
+  scaffoldCabinetDir({
+    targetDir,
     name,
     kind,
-    version: "0.1.0",
-    description: "",
-    entry: "index.md",
-  };
-
-  if (isChild) {
-    manifest.parent = {
-      shared_context: [],
-    };
-    manifest.access = {
-      mode: "subtree-plus-parent-brief",
-    };
-  }
-
-  writeCabinetManifest(targetDir, manifest);
-
-  // Write index.md
-  const now = new Date().toISOString();
-  const indexContent = [
-    "---",
-    `title: ${name}`,
-    `created: '${now}'`,
-    `modified: '${now}'`,
-    "tags: []",
-    "order: 1",
-    "---",
-    "",
-    `# ${name}`,
-    "",
-  ].join("\n");
-
-  fs.writeFileSync(path.join(targetDir, "index.md"), indexContent, "utf8");
+  });
 
   success(`Cabinet "${name}" created at ./${slug}/`);
 

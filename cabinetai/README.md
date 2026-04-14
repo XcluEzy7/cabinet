@@ -5,12 +5,11 @@ AI-first self-hosted knowledge base and startup OS. All content lives as markdow
 ## Quick Start
 
 ```bash
-npx cabinetai create my-startup
-cd my-startup
+mkdir my-startup && cd my-startup
 npx cabinetai run
 ```
 
-That's it — no global install needed. The app auto-downloads on first run, installs dependencies, and opens in your browser.
+That's it — no global install needed. `run` bootstraps the directory, auto-downloads the app on first use, installs dependencies, and opens in your browser.
 
 ## What You Get
 
@@ -64,7 +63,7 @@ npx cabinetai run --no-open              # don't open browser
 npx cabinetai run --app-version 0.2.12   # use a specific app version
 ```
 
-On first run, downloads the app to `~/.cabinet/app/` and installs dependencies. Subsequent runs start instantly.
+On first run, downloads the app to `~/.cabinet/app/` and installs dependencies. If the current directory is not already a cabinet, `run` bootstraps it in place by creating the `.cabinet`, `.agents/`, `.jobs/`, and `.cabinet-state/` structure before starting the server.
 
 **Environment variables:**
 
