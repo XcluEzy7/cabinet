@@ -1,6 +1,8 @@
 import path from "path";
 import fs from "fs/promises";
 import yaml from "js-yaml";
+import { DATA_DIR } from "@/lib/storage/path-utils";
+import { PROJECT_ROOT } from "@/lib/runtime/runtime-config";
 
 export interface ScaffoldCabinetOptions {
   name: string;
@@ -14,6 +16,73 @@ export interface ScaffoldCabinetOptions {
    * Useful for re-running onboarding on an already-initialized directory.
    */
   skipExisting?: boolean;
+}
+
+const GETTING_STARTED_DIRNAME = "getting-started";
+
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function copyDirectoryMerge(src: string, dest: string): Promise<void> {
+  await fs.mkdir(dest, { recursive: true });
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectoryMerge(srcPath, destPath);
+      continue;
+    }
+
+    if (await pathExists(destPath)) {
+      continue;
+    }
+
+    await fs.mkdir(path.dirname(destPath), { recursive: true });
+    await fs.copyFile(srcPath, destPath);
+  }
+}
+
+async function resolveGettingStartedSeedDir(targetDir: string): Promise<string | null> {
+  const destinationDir = path.resolve(targetDir, GETTING_STARTED_DIRNAME);
+  const candidates = [
+    path.join(DATA_DIR, GETTING_STARTED_DIRNAME),
+    path.join(PROJECT_ROOT, "data", GETTING_STARTED_DIRNAME),
+  ];
+
+  for (const candidate of candidates) {
+    if (!(await pathExists(candidate))) {
+      continue;
+    }
+
+    if (path.resolve(candidate) === destinationDir) {
+      continue;
+    }
+
+    return candidate;
+  }
+
+  return null;
+}
+
+export async function seedGettingStartedDir(targetDir: string): Promise<void> {
+  const sourceDir = await resolveGettingStartedSeedDir(targetDir);
+  if (!sourceDir) {
+    return;
+  }
+
+  await copyDirectoryMerge(
+    sourceDir,
+    path.join(targetDir, GETTING_STARTED_DIRNAME)
+  );
 }
 
 /**
@@ -91,4 +160,6 @@ export async function scaffoldCabinet(
   } else {
     await writeIndex();
   }
+
+  await seedGettingStartedDir(targetDir);
 }

@@ -3,10 +3,10 @@ import path from "path";
 import fs from "fs/promises";
 import yaml from "js-yaml";
 import {
-  DATA_DIR,
   resolveContentPath,
   sanitizeFilename,
 } from "@/lib/storage/path-utils";
+import { seedGettingStartedDir } from "@/lib/storage/cabinet-scaffold";
 import { downloadRegistryTemplate } from "@/lib/registry/github-fetch";
 import { REGISTRY_TEMPLATES } from "@/lib/registry/registry-manifest";
 import { CABINET_MANIFEST_FILE } from "@/lib/cabinets/files";
@@ -74,6 +74,8 @@ export async function POST(req: NextRequest) {
     await fs
       .mkdir(path.join(targetDir, ".cabinet-state"), { recursive: true })
       .catch(() => {});
+
+    await seedGettingStartedDir(targetDir);
 
     return NextResponse.json(
       {
