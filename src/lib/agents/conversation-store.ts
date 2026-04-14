@@ -529,16 +529,21 @@ function isClaudeIdleTailNoise(line: string): boolean {
   if (/^⏵⏵/.test(normalized)) return true;
   if (/^[✢✳✶✻✽·]$/.test(normalized)) return true;
   if (/^⎿\s*Tip:/i.test(normalized) || /^Tip:/i.test(normalized)) return true;
-  if (/^Brewed for\b/i.test(normalized)) return true;
+
+  // Completion timing line: "Brewed for 1m 43s", "✻ Sautéed for 30s", etc.
+  // Claude Code uses many cooking/creative verbs — match generically.
+  if (/^[✢✳✶✻✽]\s*\S+\s+for\b/i.test(normalized)) return true;
+  if (/\bfor\s+(?:\d+m\s*)?\d+s\b/i.test(normalized)) return true;
+  if (/^\S+\s+for\s+\d/i.test(normalized)) return true;
 
   const compact = compactCabinetValue(line);
   if (!compact) return true;
   if (compact.includes("esctointerrupt")) return false;
   if (compact.includes("bypasspermissionson")) return true;
   if (compact.includes("shifttabtocycle")) return true;
-  if (compact.includes("brewedfor")) return true;
+  if (/\wfor\d/.test(compact)) return true;
   if (
-    /(orbiting|sublimating|sketching|brewing|thinking|manifesting|twisting|lollygagging|contemplating|vibing|sauteed|improvising|envisioning|churning)/i.test(
+    /(orbiting|sublimating|sketching|brewing|thinking|manifesting|twisting|lollygagging|contemplating|vibing|improvising|envisioning|churning)/i.test(
       normalized
     )
   ) {
@@ -557,7 +562,7 @@ function hasClaudePromptTail(transcript: string, prompt?: string): boolean {
   for (let index = lines.length - 1; index >= 0; index -= 1) {
     const normalized = normalizeDisplayLine(lines[index] || "");
     if (!normalized) continue;
-    if (/^[❯>]$/.test(normalized)) {
+    if (/^[❯>](?:\s|$)/.test(normalized)) {
       return true;
     }
     if (isClaudeIdleTailNoise(lines[index] || "")) {

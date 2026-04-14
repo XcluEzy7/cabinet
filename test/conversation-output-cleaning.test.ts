@@ -161,3 +161,45 @@ test("transcriptShowsCompletedRun stays running when Claude is still interruptib
 
   assert.equal(transcriptShowsCompletedRun(transcript, prompt), false);
 });
+
+test("transcriptShowsCompletedRun detects completion when timing verb and prompt merge onto one line", () => {
+  const prompt = [
+    "At the end of your response, include a ```cabinet block with these fields:",
+    "SUMMARY: one short summary line",
+    "CONTEXT: optional lightweight memory/context summary",
+    "ARTIFACT: relative/path/to/file for every KB file you created or updated",
+  ].join("\n");
+
+  const transcript = [
+    "SUMMARY: Added second Hagrid poem",
+    "ARTIFACT: garden/hagrid/index.md",
+    "⏵⏵bypasspermissionson (shift+tabtocycle·",
+    "✻Sautéed for 31s",
+    "───────────────────────────────────────────────────",
+    "❯   ⏵⏵ bypass permissions on (shift+tab to cycle)",
+  ].join("\n");
+
+  assert.equal(transcriptShowsCompletedRun(transcript, prompt), true);
+});
+
+test("transcriptShowsCompletedRun handles any cooking verb in the completion timing line", () => {
+  const prompt = [
+    "SUMMARY: one short summary line",
+    "ARTIFACT: relative/path/to/file for every KB file you created or updated",
+  ].join("\n");
+
+  for (const verb of ["Brewed", "Sautéed", "Baked", "Churned", "Crunched", "Searched"]) {
+    const transcript = [
+      "SUMMARY: Created a page about dragons",
+      "ARTIFACT: dragons/index.md",
+      `✻ ${verb} for 1m 43s`,
+      "❯",
+    ].join("\n");
+
+    assert.equal(
+      transcriptShowsCompletedRun(transcript, prompt),
+      true,
+      `should detect completion with timing verb "${verb}"`,
+    );
+  }
+});

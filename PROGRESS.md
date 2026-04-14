@@ -1,5 +1,7 @@
 # Progress
 
+[2026-04-14] Fixed task completion detection stuck on "running". Two bugs: (1) after ANSI stripping the `❯` idle prompt merged onto the same line as `⏵⏵ bypass permissions on`, so the exact-match regex `/^[❯>]$/` never matched — loosened to `/^[❯>](?:\s|$)/`; (2) Claude Code's completion timing line uses many verbs beyond "Brewed" (Sautéed, Baked, Churned, Crunched, etc.) — `isClaudeIdleTailNoise` now matches any spinner-prefixed `Verb for [time]` pattern generically instead of hardcoding individual verbs.
+
 [2026-04-14] Unified `cabinetai-plan.md` and `CABINETAI_DEPLOYMENT.md` into single `CABINETAI.md`. Synced all three package versions to 0.3.1 (app, create-cabinet, cabinetai). Published both npm packages with READMEs.
 
 [2026-04-14] CLI: added `cabinetai uninstall` command. Default removes cached app versions from `~/.cabinet/app/`; `--all` removes the entire `~/.cabinet` directory. Cabinet data directories are never touched.
