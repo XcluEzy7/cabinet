@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
-import { WebTerminal } from "@/components/terminal/web-terminal";
 import { ConversationResultView } from "@/components/agents/conversation-result-view";
+import { ConversationLiveView } from "@/components/agents/conversation-live-view";
 import { Button } from "@/components/ui/button";
 import type { ConversationDetail, ConversationStatus } from "@/types/conversations";
 import { openArtifactPath } from "@/lib/navigation/open-artifact-path";
@@ -46,52 +46,97 @@ export function TaskDetailPanel() {
 
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [failedLoad, setFailedLoad] = useState(false);
 
-  // Fetch full detail when a completed/failed conversation is selected
   useEffect(() => {
-    if (!conversation || conversation.status === "running") {
+    if (!conversation) {
+      setDetail(null);
+      setLoading(false);
+      setFailedLoad(false);
       return;
     }
+
+    const selectedConversation = conversation;
+    setDetail(null);
+    setFailedLoad(false);
+
     let cancelled = false;
-    void (async () => {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (conversation.cabinetPath) {
-        params.set("cabinetPath", conversation.cabinetPath);
+    let pollHandle: number | null = null;
+
+    async function loadConversationDetail(background = false): Promise<ConversationDetail | null> {
+      if (!background) {
+        setLoading(true);
       }
+
+      const params = new URLSearchParams();
+      if (selectedConversation.cabinetPath) {
+        params.set("cabinetPath", selectedConversation.cabinetPath);
+      }
+
       try {
         const response = await fetch(
-          `/api/agents/conversations/${conversation.id}?${params.toString()}`
+          `/api/agents/conversations/${selectedConversation.id}?${params.toString()}`
         );
         const data = response.ok ? ((await response.json()) as ConversationDetail) : null;
         if (!cancelled && data) {
           setDetail(data);
+          setFailedLoad(false);
+          if (data.meta.status !== "running" && pollHandle !== null) {
+            window.clearInterval(pollHandle);
+            pollHandle = null;
+          }
+          return data;
+        } else if (!cancelled && !data) {
+          setFailedLoad(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setFailedLoad(true);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !background) {
+          setLoading(false);
+        }
+      }
+
+      return null;
+    }
+
+    void (async () => {
+      const nextDetail = await loadConversationDetail();
+      const shouldPoll = (nextDetail?.meta.status || selectedConversation.status) === "running";
+      if (!cancelled && shouldPoll && pollHandle === null) {
+        pollHandle = window.setInterval(() => {
+          void loadConversationDetail(true);
+        }, 1500);
       }
     })();
+
     return () => {
       cancelled = true;
+      if (pollHandle !== null) {
+        window.clearInterval(pollHandle);
+      }
     };
-  }, [conversation?.id, conversation?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [conversation?.cabinetPath, conversation?.id, conversation?.status]);
 
   if (!conversation) return null;
+  const activeConversation = detail?.meta.id === conversation.id ? detail.meta : conversation;
 
   return (
     <div className="flex h-full w-[420px] shrink-0 flex-col border-l border-border/70 bg-background">
       <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <StatusDot status={conversation.status} />
+            <StatusDot status={activeConversation.status} />
             <p className="truncate text-[13px] font-medium text-foreground">
-              {conversation.title}
+              {activeConversation.title}
             </p>
           </div>
           <p className="mt-0.5 truncate pl-4 text-[11px] text-muted-foreground">
-            {startCase(conversation.agentSlug)}
+            {startCase(activeConversation.agentSlug)}
             {" · "}
-            {formatRelative(conversation.startedAt)}
+            {formatRelative(activeConversation.startedAt)}
           </p>
         </div>
         <Button
@@ -105,31 +150,30 @@ export function TaskDetailPanel() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {conversation.status === "running" ? (
-          <WebTerminal
-            sessionId={conversation.id}
-            displayPrompt={conversation.title}
-            reconnect
-            themeSurface="page"
-            onClose={() => {
-              // Session ended — could refresh, but panel stays open
-            }}
-          />
-        ) : loading ? (
+        {loading && !detail ? (
           <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
             Loading...
           </div>
         ) : detail ? (
-          <ConversationResultView
-            detail={detail}
-            onOpenArtifact={(artifactPath) => {
-              void openArtifactPath(artifactPath, { type: "page" });
-            }}
-          />
+          activeConversation.status === "running" ? (
+            <ConversationLiveView
+              detail={detail}
+              onOpenArtifact={(artifactPath) => {
+                void openArtifactPath(artifactPath, { type: "page" });
+              }}
+            />
+          ) : (
+            <ConversationResultView
+              detail={detail}
+              onOpenArtifact={(artifactPath) => {
+                void openArtifactPath(artifactPath, { type: "page" });
+              }}
+            />
+          )
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Could not load conversation detail.
+            {failedLoad ? "Could not load conversation detail." : "Waiting for conversation detail..."}
           </div>
         )}
       </div>
