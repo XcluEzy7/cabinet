@@ -3,6 +3,7 @@ name: Monthly LP Flash Update Draft
 enabled: true
 schedule: 0 9 * * 1
 provider: claude-code
+adapterType: claude_local
 ownerAgent: managing-partner
 agentSlug: managing-partner
 timeout: 600

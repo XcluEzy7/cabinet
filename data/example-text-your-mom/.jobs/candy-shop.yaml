@@ -3,6 +3,7 @@ name: candy
 enabled: false
 schedule: '*/1 * * * *'
 provider: claude-code
+adapterType: claude_local
 ownerAgent: ceo
 agentSlug: ceo
 timeout: 600

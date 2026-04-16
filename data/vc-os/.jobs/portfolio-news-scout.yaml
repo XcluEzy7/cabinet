@@ -3,6 +3,7 @@ name: Portfolio Company News Scout
 enabled: true
 schedule: 0 8 * * 1-5
 provider: claude-code
+adapterType: claude_local
 ownerAgent: portfolio-manager
 agentSlug: portfolio-manager
 timeout: 600

@@ -794,18 +794,18 @@ export function TaskRuntimePicker({
               onValueChange={setActiveProviderId}
               className="gap-0"
             >
-              <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
-                <div className="border-b border-border/60 bg-muted/15 px-1.5 pt-1">
+              <div className="overflow-hidden rounded-xl border border-border/70">
+                <div className="border-b border-border/60 px-1.5 pt-1.5">
                   <TabsList
                     variant="line"
                     aria-label="Task providers"
-                    className="h-auto w-full justify-start gap-1 rounded-none bg-transparent p-0"
+                    className="h-auto w-full justify-start gap-1.5 rounded-none bg-transparent p-0"
                   >
                     {selectableProviders.map((provider) => (
                       <TabsTrigger
                         key={provider.id}
                         value={provider.id}
-                        className="relative -mb-px h-7 flex-none gap-1.5 rounded-t-lg rounded-b-none border border-transparent border-b-0 px-2.5 py-1 text-[9px] font-medium text-muted-foreground shadow-none after:hidden hover:text-foreground data-active:z-10 data-active:border-border/60 data-active:bg-background data-active:text-foreground"
+                        className="relative -mb-px h-7 flex-none gap-1.5 rounded-t-md rounded-b-none border border-border/50 border-b-0 bg-muted/35 px-2.5 py-1 text-[9px] font-medium text-muted-foreground shadow-none after:hidden hover:bg-muted/55 hover:text-foreground data-active:z-10 data-active:border-border/70 data-active:bg-background data-active:text-foreground data-active:shadow-[0_-1px_0_rgba(255,255,255,0.75)]"
                       >
                         <ProviderGlyph
                           icon={provider.icon}
@@ -821,7 +821,7 @@ export function TaskRuntimePicker({
                   <TabsContent
                     key={provider.id}
                     value={provider.id}
-                    className="mt-0"
+                    className="mt-0 bg-background"
                   >
                     <ProviderRuntimeMatrix
                       provider={provider}

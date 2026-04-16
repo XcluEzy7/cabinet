@@ -3,6 +3,7 @@ name: Weekly Partner Meeting Prep
 enabled: true
 schedule: 0 18 * * 1
 provider: claude-code
+adapterType: claude_local
 ownerAgent: managing-partner
 agentSlug: managing-partner
 timeout: 600

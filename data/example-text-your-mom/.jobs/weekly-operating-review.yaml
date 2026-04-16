@@ -3,6 +3,7 @@ name: Weekly Operating Review
 enabled: true
 schedule: 0 11 * * 1
 provider: claude-code
+adapterType: claude_local
 ownerAgent: ceo
 agentSlug: ceo
 timeout: 600

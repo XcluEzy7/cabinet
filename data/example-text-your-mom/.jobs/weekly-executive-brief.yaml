@@ -3,6 +3,7 @@ name: Weekly Executive Brief
 enabled: true
 schedule: 0 9 * * 1
 provider: claude-code
+adapterType: claude_local
 ownerAgent: ceo
 agentSlug: ceo
 timeout: 600

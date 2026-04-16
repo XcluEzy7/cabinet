@@ -3,6 +3,7 @@ name: Weekly Competitor Intelligence
 enabled: true
 schedule: 0 9 * * 4
 provider: claude-code
+adapterType: claude_local
 ownerAgent: analyst
 agentSlug: analyst
 timeout: 600
