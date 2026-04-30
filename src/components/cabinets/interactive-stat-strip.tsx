@@ -57,7 +57,7 @@ function StatPopover({
   return (
     <div
       ref={ref}
-      className="absolute left-0 top-[calc(100%+6px)] z-30 w-72 rounded-xl border border-border bg-background shadow-lg animate-in fade-in slide-in-from-top-1 duration-150"
+      className="absolute left-0 top-[calc(100%+6px)] z-30 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-background shadow-lg animate-in fade-in slide-in-from-top-1 duration-150 max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:right-auto"
     >
       <div className="flex items-center justify-between border-b border-border/50 px-3.5 py-2">
         <div className="flex items-center gap-2">

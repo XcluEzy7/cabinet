@@ -1,0 +1,20 @@
+{
+  "id": "2026-04-29T13-00-00-420Z-0888999f-image-creator-job-daily-trend-scan",
+  "agentSlug": "image-creator",
+  "cabinetPath": "example-text-your-mom/marketing/tiktok",
+  "title": "Daily Trend Scan",
+  "trigger": "job",
+  "status": "failed",
+  "startedAt": "2026-04-29T13:00:00.420Z",
+  "jobId": "daily-trend-scan",
+  "jobName": "Daily Trend Scan",
+  "providerId": "claude-code",
+  "adapterType": "claude_local",
+  "promptPath": "example-text-your-mom/marketing/tiktok/.agents/.conversations/2026-04-29T13-00-00-420Z-0888999f-image-creator-job-daily-trend-scan/prompt.md",
+  "transcriptPath": "example-text-your-mom/marketing/tiktok/.agents/.conversations/2026-04-29T13-00-00-420Z-0888999f-image-creator-job-daily-trend-scan/transcript.txt",
+  "mentionedPaths": [],
+  "artifactPaths": [],
+  "completedAt": "2026-04-29T13:00:01.391Z",
+  "exitCode": 1,
+  "summary": "spawn claude ENOENT"
+}

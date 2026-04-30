@@ -1,4 +1,5 @@
 import { execSync, spawn } from "child_process";
+import { existsSync } from "node:fs";
 import { getNvmNodeBin } from "../nvm-path";
 
 const nvmBin = getNvmNodeBin();
@@ -72,6 +73,23 @@ export function resolveCommandFromCandidates(
       if (resolved) return resolved;
     } catch {
       // Ignore and keep trying.
+    }
+  }
+
+  // --- mise fallback: if mise is present, resolve through it ---
+  const miseBin = env.MISE_BIN || `${env.HOME || ""}/.local/bin/mise`;
+  if (existsSync(miseBin)) {
+    for (const candidate of candidates) {
+      if (!candidate || candidate.includes("/")) continue;
+      try {
+        const resolved = execSync(
+          `${JSON.stringify(miseBin)} which ${candidate}`,
+          { encoding: "utf8", env: withAdapterRuntimeEnv(env), stdio: ["ignore", "pipe", "ignore"] }
+        ).trim();
+        if (resolved && existsSync(resolved)) return resolved;
+      } catch {
+        // mise doesn't know this tool; ignore.
+      }
     }
   }
 

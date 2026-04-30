@@ -1,0 +1,20 @@
+{
+  "id": "2026-04-29T15-00-01-194Z-7dd72787-devops-job-daily-bug-triage",
+  "agentSlug": "devops",
+  "cabinetPath": "example-text-your-mom/app-development",
+  "title": "Daily Bug Triage",
+  "trigger": "job",
+  "status": "failed",
+  "startedAt": "2026-04-29T15:00:01.194Z",
+  "jobId": "daily-bug-triage",
+  "jobName": "Daily Bug Triage",
+  "providerId": "claude-code",
+  "adapterType": "claude_local",
+  "promptPath": "example-text-your-mom/app-development/.agents/.conversations/2026-04-29T15-00-01-194Z-7dd72787-devops-job-daily-bug-triage/prompt.md",
+  "transcriptPath": "example-text-your-mom/app-development/.agents/.conversations/2026-04-29T15-00-01-194Z-7dd72787-devops-job-daily-bug-triage/transcript.txt",
+  "mentionedPaths": [],
+  "artifactPaths": [],
+  "completedAt": "2026-04-29T15:00:05.901Z",
+  "exitCode": 1,
+  "summary": "spawn claude ENOENT"
+}

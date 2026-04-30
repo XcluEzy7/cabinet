@@ -81,6 +81,9 @@ data/**/.DS_Store
 # claude code
 .claude/
 
+# hermes agent config
+.hermes/
+
 # stray build artifacts
 data/.agents/.library/.next/
 

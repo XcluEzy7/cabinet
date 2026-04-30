@@ -6,7 +6,7 @@ role: >-
 provider: claude-code
 heartbeat: 0 9 * * 5
 budget: 80
-active: true
+active: false
 workdir: /
 focus:
   - portfolio-health

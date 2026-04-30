@@ -6,7 +6,7 @@ role: >-
 provider: claude-code
 heartbeat: 0 8 * * 3
 budget: 70
-active: true
+active: false
 workdir: /
 focus:
   - pipeline-health

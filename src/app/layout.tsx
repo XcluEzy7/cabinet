@@ -27,6 +27,7 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "Cabinet",
   description: "AI-first knowledge base and startup OS",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
 };
 
 export default function RootLayout({

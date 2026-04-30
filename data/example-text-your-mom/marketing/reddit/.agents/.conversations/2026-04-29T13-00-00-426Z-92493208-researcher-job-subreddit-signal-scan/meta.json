@@ -1,0 +1,20 @@
+{
+  "id": "2026-04-29T13-00-00-426Z-92493208-researcher-job-subreddit-signal-scan",
+  "agentSlug": "researcher",
+  "cabinetPath": "example-text-your-mom/marketing/reddit",
+  "title": "Subreddit Signal Scan",
+  "trigger": "job",
+  "status": "failed",
+  "startedAt": "2026-04-29T13:00:00.426Z",
+  "jobId": "subreddit-signal-scan",
+  "jobName": "Subreddit Signal Scan",
+  "providerId": "claude-code",
+  "adapterType": "claude_local",
+  "promptPath": "example-text-your-mom/marketing/reddit/.agents/.conversations/2026-04-29T13-00-00-426Z-92493208-researcher-job-subreddit-signal-scan/prompt.md",
+  "transcriptPath": "example-text-your-mom/marketing/reddit/.agents/.conversations/2026-04-29T13-00-00-426Z-92493208-researcher-job-subreddit-signal-scan/transcript.txt",
+  "mentionedPaths": [],
+  "artifactPaths": [],
+  "completedAt": "2026-04-29T13:00:01.390Z",
+  "exitCode": 1,
+  "summary": "spawn claude ENOENT"
+}

@@ -6,7 +6,7 @@ role: >-
 provider: claude-code
 heartbeat: 0 7 * * 1-5
 budget: 80
-active: true
+active: false
 workdir: /
 focus:
   - daily-brief

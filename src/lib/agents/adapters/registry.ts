@@ -9,6 +9,8 @@ import { claudeLocalAdapter } from "./claude-local";
 import { codexLocalAdapter } from "./codex-local";
 import { providerStatusToEnvironmentTest } from "./environment";
 import { geminiLocalAdapter } from "./gemini-local";
+import { ollamaLocalAdapter } from "./ollama-local";
+import { piLocalAdapter } from "./pi-local";
 
 export const LEGACY_ADAPTER_BY_PROVIDER_ID: Record<string, string> = {
   "claude-code": "claude_code_legacy",
@@ -19,6 +21,8 @@ export const DEFAULT_ADAPTER_BY_PROVIDER_ID: Record<string, string> = {
   "claude-code": claudeLocalAdapter.type,
   "codex-cli": codexLocalAdapter.type,
   "gemini-cli": geminiLocalAdapter.type,
+  "ollama-cli": ollamaLocalAdapter.type,
+  "pi-cli": piLocalAdapter.type,
 };
 
 export const LEGACY_PROVIDER_ID_BY_ADAPTER: Record<string, string> = Object.fromEntries(
@@ -102,6 +106,8 @@ export const agentAdapterRegistry = new AgentAdapterRegistry();
 agentAdapterRegistry.register(claudeLocalAdapter);
 agentAdapterRegistry.register(codexLocalAdapter);
 agentAdapterRegistry.register(geminiLocalAdapter);
+agentAdapterRegistry.register(ollamaLocalAdapter);
+agentAdapterRegistry.register(piLocalAdapter);
 agentAdapterRegistry.register(legacyClaudeCodeAdapter);
 agentAdapterRegistry.register(legacyCodexCliAdapter);
 

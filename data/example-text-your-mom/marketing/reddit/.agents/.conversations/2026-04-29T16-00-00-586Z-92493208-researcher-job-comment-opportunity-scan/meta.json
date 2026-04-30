@@ -1,0 +1,20 @@
+{
+  "id": "2026-04-29T16-00-00-586Z-92493208-researcher-job-comment-opportunity-scan",
+  "agentSlug": "researcher",
+  "cabinetPath": "example-text-your-mom/marketing/reddit",
+  "title": "Comment Opportunity Scan",
+  "trigger": "job",
+  "status": "failed",
+  "startedAt": "2026-04-29T16:00:00.586Z",
+  "jobId": "comment-opportunity-scan",
+  "jobName": "Comment Opportunity Scan",
+  "providerId": "claude-code",
+  "adapterType": "claude_local",
+  "promptPath": "example-text-your-mom/marketing/reddit/.agents/.conversations/2026-04-29T16-00-00-586Z-92493208-researcher-job-comment-opportunity-scan/prompt.md",
+  "transcriptPath": "example-text-your-mom/marketing/reddit/.agents/.conversations/2026-04-29T16-00-00-586Z-92493208-researcher-job-comment-opportunity-scan/transcript.txt",
+  "mentionedPaths": [],
+  "artifactPaths": [],
+  "completedAt": "2026-04-29T16:00:01.156Z",
+  "exitCode": 1,
+  "summary": "spawn claude ENOENT"
+}

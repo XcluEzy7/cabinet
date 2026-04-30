@@ -1,11 +1,11 @@
 id: weekly-pipeline-review
 name: Weekly Deal Pipeline Review
-description: Reviews the active deal pipeline every Wednesday morning before the partner meeting — flags stale deals, cross-references intelligence signals, and prepares a pipeline status summary.
+enabled: true
+schedule: 0 8 * * 3
+provider: claude-code
+adapterType: claude_local
 ownerAgent: deal-scout
 agentSlug: deal-scout
-enabled: true
-schedule: "0 8 * * 3"
-provider: claude-code
 timeout: 600
 prompt: |-
   Every Wednesday morning (partner meeting day), review the Warp Ventures deal flow pipeline.
@@ -22,6 +22,6 @@ prompt: |-
   - Any new deal leads worth adding based on intelligence signals
 
   Update active-deals.csv if any stage changes are warranted, adding a note in the Notes column.
-cabinetPath: vc-os
-createdAt: "2026-04-13T00:00:00.000Z"
-updatedAt: "2026-04-13T00:00:00.000Z"
+cabinetPath: vc-os/deal-flow
+createdAt: '2026-04-13T00:00:00.000Z'
+updatedAt: '2026-04-13T00:00:00.000Z'

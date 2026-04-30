@@ -78,7 +78,7 @@ export function EditAgentDialog({ open, onOpenChange, slug, onSaved }: EditAgent
       .then((r) => r.json())
       .then((data) => {
         const nextProviders = (data.providers || []).filter(
-          (entry: ProviderInfo) => entry.type === "cli" && entry.enabled
+          (entry: ProviderInfo) => (entry.type === "cli" || entry.type === "api") && entry.enabled
         );
         setProviders(nextProviders);
         setDefaultProvider(data.defaultProvider || "claude-code");

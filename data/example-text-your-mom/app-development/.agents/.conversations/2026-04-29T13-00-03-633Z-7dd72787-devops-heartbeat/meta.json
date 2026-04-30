@@ -1,0 +1,18 @@
+{
+  "id": "2026-04-29T13-00-03-633Z-7dd72787-devops-heartbeat",
+  "agentSlug": "devops",
+  "cabinetPath": "example-text-your-mom/app-development",
+  "title": "DevOps Engineer heartbeat",
+  "trigger": "heartbeat",
+  "status": "failed",
+  "startedAt": "2026-04-29T13:00:03.633Z",
+  "providerId": "claude-code",
+  "adapterType": "claude_local",
+  "promptPath": "example-text-your-mom/app-development/.agents/.conversations/2026-04-29T13-00-03-633Z-7dd72787-devops-heartbeat/prompt.md",
+  "transcriptPath": "example-text-your-mom/app-development/.agents/.conversations/2026-04-29T13-00-03-633Z-7dd72787-devops-heartbeat/transcript.txt",
+  "mentionedPaths": [],
+  "artifactPaths": [],
+  "completedAt": "2026-04-29T13:00:04.224Z",
+  "exitCode": 1,
+  "summary": "spawn claude ENOENT"
+}

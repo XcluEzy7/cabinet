@@ -1,9 +1,13 @@
 import fs from "fs";
 import net from "net";
 import path from "path";
+import { fileURLToPath } from "url";
 import { spawn } from "child_process";
 
-const PROJECT_ROOT = process.cwd();
+// Resolve PROJECT_ROOT from the script file location, NOT process.cwd()
+// (Hermes terminal may start in a different working directory like ~/.openclaw/workspace)
+const __filename = fileURLToPath(import.meta.url);
+const PROJECT_ROOT = path.resolve(path.dirname(__filename), "..");
 
 function parsePort(value, fallback) {
   const parsed = Number.parseInt(String(value || ""), 10);

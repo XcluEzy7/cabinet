@@ -6,7 +6,7 @@ role: >-
 provider: claude-code
 heartbeat: 0 9 * * 1
 budget: 100
-active: true
+active: false
 workdir: /
 focus:
   - fund-strategy

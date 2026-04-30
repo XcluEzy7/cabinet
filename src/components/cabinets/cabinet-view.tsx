@@ -600,12 +600,12 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* ─── Header bar ─── */}
       <div className="border-b border-border/70 bg-background/95 px-4 py-5 sm:px-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0" ref={titleSectionRef}>
             <h1 className="font-body-serif text-[1.9rem] leading-none tracking-tight text-foreground sm:text-[2.2rem]">
               {cabinetName}
             </h1>
-            <p className="pt-2 text-sm leading-6 text-muted-foreground">
+            <p className="line-clamp-2 max-w-prose pt-2 text-sm leading-6 text-muted-foreground">
               {cabinetDescription}
             </p>
           </div>
@@ -623,14 +623,14 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-4">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <InteractiveStatStrip
             agents={overview?.agents || []}
             jobs={overview?.jobs || []}
             onAgentClick={openCabinetAgent}
           />
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex flex-wrap shrink-0 items-center gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/55">
               Scope
             </span>

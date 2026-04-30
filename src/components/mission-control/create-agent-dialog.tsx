@@ -68,7 +68,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
       .then((r) => r.json())
       .then((data) => {
         const nextProviders = (data.providers || []).filter(
-          (entry: ProviderInfo) => entry.type === "cli" && entry.enabled
+          (entry: ProviderInfo) => (entry.type === "cli" || entry.type === "api") && entry.enabled
         );
         setProviders(nextProviders);
         const nextDefault = data.defaultProvider || "claude-code";

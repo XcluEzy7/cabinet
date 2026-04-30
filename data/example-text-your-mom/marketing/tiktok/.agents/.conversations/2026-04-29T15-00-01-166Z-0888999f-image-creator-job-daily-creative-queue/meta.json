@@ -1,0 +1,20 @@
+{
+  "id": "2026-04-29T15-00-01-166Z-0888999f-image-creator-job-daily-creative-queue",
+  "agentSlug": "image-creator",
+  "cabinetPath": "example-text-your-mom/marketing/tiktok",
+  "title": "Daily Creative Queue",
+  "trigger": "job",
+  "status": "failed",
+  "startedAt": "2026-04-29T15:00:01.166Z",
+  "jobId": "daily-creative-queue",
+  "jobName": "Daily Creative Queue",
+  "providerId": "claude-code",
+  "adapterType": "claude_local",
+  "promptPath": "example-text-your-mom/marketing/tiktok/.agents/.conversations/2026-04-29T15-00-01-166Z-0888999f-image-creator-job-daily-creative-queue/prompt.md",
+  "transcriptPath": "example-text-your-mom/marketing/tiktok/.agents/.conversations/2026-04-29T15-00-01-166Z-0888999f-image-creator-job-daily-creative-queue/transcript.txt",
+  "mentionedPaths": [],
+  "artifactPaths": [],
+  "completedAt": "2026-04-29T15:00:05.933Z",
+  "exitCode": 1,
+  "summary": "spawn claude ENOENT"
+}
